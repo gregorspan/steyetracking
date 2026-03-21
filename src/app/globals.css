@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* WebGazer injects a fixed preview; tuck it in the corner */
+#webgazerVideoContainer {
+  top: auto !important;
+  left: auto !important;
+  bottom: 1rem !important;
+  right: 1rem !important;
+  z-index: 100000 !important;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
