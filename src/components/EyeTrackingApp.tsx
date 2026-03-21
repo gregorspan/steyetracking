@@ -77,12 +77,14 @@ export function EyeTrackingApp() {
       await webgazer.clearData();
 
       await webgazer.begin(() => {
-        setError("Could not access the camera. Allow permission and try again.");
+        setError(
+          "Could not access the camera. Allow permission in your browser and try again.",
+        );
         setPhase("error");
       });
 
       if (!webgazer.isReady()) {
-        setError("Eye tracker did not initialize. Try refreshing.");
+        setError("The eye tracker did not finish starting up. Try refreshing the page.");
         setPhase("error");
         return;
       }
@@ -97,7 +99,7 @@ export function EyeTrackingApp() {
     } catch (e) {
       console.error(e);
       setError(
-        e instanceof Error ? e.message : "Failed to start eye tracking.",
+        e instanceof Error ? e.message : "Could not start the eye tracker.",
       );
       setPhase("error");
       await cleanupWebGazer();
@@ -152,15 +154,16 @@ export function EyeTrackingApp() {
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
       <header className="border-b border-white/10 px-6 py-8 text-center">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-400/90">
-          WebGazer · webcam gaze estimation
+          University project · hands-free cooking
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-          Eye tracking demo
+          Hands-free recipe reader
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
-          Calibration learns a mapping from your face to screen coordinates.
-          Look at each dot and click it. Then the demo shows where the model
-          thinks you are looking — accuracy varies by lighting and hardware.
+          This prototype explores eye tracking so you can follow recipes with
+          messy hands—no scrolling or tapping on the screen. Here you calibrate
+          the webcam tracker and try a live gaze preview. A full recipe UI with
+          gaze-driven controls would build on this foundation.
         </p>
       </header>
 
@@ -168,22 +171,23 @@ export function EyeTrackingApp() {
         {phase === "idle" && (
           <div className="flex max-w-md flex-col items-center gap-6 text-center">
             <p className="text-sm text-slate-400">
-              Uses your laptop camera in the browser. Works best on Chrome or
-              Edge over HTTPS or localhost.
+              Grant camera access so the page can estimate where you are looking.
+              Use Chrome or Edge on HTTPS or localhost for the most reliable
+              results in this coursework build.
             </p>
             <button
               type="button"
               onClick={() => void startPipeline()}
               className="rounded-full bg-cyan-500 px-8 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-400"
             >
-              Start camera &amp; calibration
+              Start calibration
             </button>
           </div>
         )}
 
         {phase === "loading" && (
           <p className="text-sm text-slate-400">
-            Loading models and camera…
+            Loading the tracker and camera…
           </p>
         )}
 
@@ -198,7 +202,7 @@ export function EyeTrackingApp() {
               }}
               className="mt-4 rounded-full border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10"
             >
-              Back
+              Back to start
             </button>
           </div>
         )}
@@ -208,28 +212,30 @@ export function EyeTrackingApp() {
             <div className="flex flex-wrap items-center justify-center gap-3">
               {phase === "calibrating" && (
                 <span className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium text-slate-300">
-                  Point {calibrationIndex + 1} of {CALIBRATION_POINTS.length}{" "}
-                  — look at the dot, then click it
+                  Step {calibrationIndex + 1} of {CALIBRATION_POINTS.length}: look
+                  at the dot, then click — trains the tracker for hands-free recipe
+                  use
                 </span>
               )}
               {phase === "demo" && (
                 <>
                   <span className="rounded-full bg-emerald-500/20 px-4 py-1.5 text-xs font-medium text-emerald-300">
-                    Demo: red dot = predicted gaze (WebGazer overlay)
+                    Prototype: red dot = estimated gaze (where a hands-free reader
+                    could register “look here” actions)
                   </span>
                   <button
                     type="button"
                     onClick={() => void recalibrate()}
                     className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
                   >
-                    Recalibrate
+                    Recalibrate for a new session
                   </button>
                   <button
                     type="button"
                     onClick={() => void finishDemo()}
                     className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
                   >
-                    Stop
+                    End prototype
                   </button>
                 </>
               )}
@@ -237,13 +243,15 @@ export function EyeTrackingApp() {
 
             {phase === "demo" && demoHint && (
               <p className="text-center text-sm text-slate-400">
-                Move your eyes; the small red circle follows your gaze estimate.
+                Look around the screen: the red dot shows how the system could
+                follow your eyes to advance steps or scroll a recipe hands-free.
               </p>
             )}
 
             {phase === "demo" && gaze && (
               <p className="text-center font-mono text-xs text-slate-500">
-                x: {Math.round(gaze.x)} px · y: {Math.round(gaze.y)} px
+                Gaze position (for future UI): x {Math.round(gaze.x)} px · y{" "}
+                {Math.round(gaze.y)} px
               </p>
             )}
           </div>
@@ -258,7 +266,7 @@ export function EyeTrackingApp() {
             <button
               key={i}
               type="button"
-              aria-label={`Calibration point ${i + 1}`}
+              aria-label={`Recipe reader calibration point ${i + 1} of ${CALIBRATION_POINTS.length}`}
               className={`fixed z-[100001] flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-4 shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                 active
                   ? "border-cyan-400 bg-cyan-500/30 shadow-cyan-500/40"

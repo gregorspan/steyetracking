@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Eye tracking demo",
+  title: "Hands-free recipe reader · university prototype",
   description:
-    "Webcam eye tracking with calibration using WebGazer in the browser.",
+    "Course project: a hands-free recipe reader powered by webcam eye tracking. Calibrate once, then explore gaze-based interaction for cooking without touching the screen.",
 };
 
 export default function RootLayout({
