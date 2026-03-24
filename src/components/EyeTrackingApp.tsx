@@ -1,154 +1,53 @@
 "use client";
 
-import type { WebGazerInstance } from "@/types/webgazer";
-import { useCallback, useEffect, useRef, useState } from "react";
-
-type Phase = "idle" | "loading" | "calibrating" | "demo" | "error";
-
-function loadWebGazerScript(): Promise<void> {
-  if (typeof window === "undefined") {
-    return Promise.reject(new Error("No window"));
-  }
-  if (window.webgazer) {
-    return Promise.resolve();
-  }
-  return new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = "/webgazer.js";
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("Failed to load /webgazer.js"));
-    document.head.appendChild(s);
-  });
-}
-
-/** Nine-point grid in normalized coordinates (0–1). */
-const CALIBRATION_POINTS: { x: number; y: number }[] = [
-  { x: 0.12, y: 0.12 },
-  { x: 0.5, y: 0.12 },
-  { x: 0.88, y: 0.12 },
-  { x: 0.12, y: 0.5 },
-  { x: 0.5, y: 0.5 },
-  { x: 0.88, y: 0.5 },
-  { x: 0.12, y: 0.88 },
-  { x: 0.5, y: 0.88 },
-  { x: 0.88, y: 0.88 },
-];
+import { CalibrationDots } from "@/components/eye-tracking/CalibrationDots";
+import { CALIBRATION_POINTS } from "@/constants/eyeCalibration";
+import { useWebGazerSession } from "@/hooks/useWebGazerSession";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 export function EyeTrackingApp() {
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [calibrationIndex, setCalibrationIndex] = useState(0);
-  const [gaze, setGaze] = useState<{ x: number; y: number } | null>(null);
+  const {
+    phase,
+    error,
+    gazeRef,
+    calibrationIndex,
+    start,
+    stop,
+    recalibrate,
+    onCalibrationClick,
+    cleanupWebGazer,
+    setPhase,
+  } = useWebGazerSession({ showPredictionPointsWhileTracking: true });
+
   const [demoHint, setDemoHint] = useState(false);
-
-  const wgRef = useRef<WebGazerInstance | null>(null);
-
-  const cleanupWebGazer = useCallback(async () => {
-    const wg = wgRef.current;
-    if (!wg) return;
-    try {
-      wg.clearGazeListener();
-      wg.removeMouseEventListeners();
-      wg.end();
-    } catch {
-      /* ignore */
-    }
-    wgRef.current = null;
-    setGaze(null);
-  }, []);
+  const [displayGaze, setDisplayGaze] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const prevPhaseRef = useRef(phase);
 
   useEffect(() => {
-    return () => {
-      void cleanupWebGazer();
-    };
-  }, [cleanupWebGazer]);
-
-  const startPipeline = async () => {
-    setError(null);
-    setPhase("loading");
-    try {
-      await loadWebGazerScript();
-      const webgazer = window.webgazer;
-      wgRef.current = webgazer;
-
-      webgazer.params.faceMeshSolutionPath = "/mediapipe/face_mesh";
-      webgazer.saveDataAcrossSessions(false);
-      await webgazer.clearData();
-
-      await webgazer.begin(() => {
-        setError(
-          "Could not access the camera. Allow permission in your browser and try again.",
-        );
-        setPhase("error");
-      });
-
-      if (!webgazer.isReady()) {
-        setError("The eye tracker did not finish starting up. Try refreshing the page.");
-        setPhase("error");
-        return;
-      }
-
-      webgazer.setVideoViewerSize(240, 180);
-      webgazer.showVideoPreview(true);
-      webgazer.showPredictionPoints(false);
-      webgazer.removeMouseEventListeners();
-
-      setCalibrationIndex(0);
-      setPhase("calibrating");
-    } catch (e) {
-      console.error(e);
-      setError(
-        e instanceof Error ? e.message : "Could not start the eye tracker.",
-      );
-      setPhase("error");
-      await cleanupWebGazer();
-    }
-  };
-
-  const onCalibrationClick = (
-    e: React.MouseEvent,
-    pointIndex: number,
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const wg = wgRef.current;
-    if (!wg || phase !== "calibrating" || pointIndex !== calibrationIndex)
+    if (phase !== "tracking") {
+      setDisplayGaze(null);
       return;
-
-    wg.recordScreenPosition(e.clientX, e.clientY, "click");
-
-    if (calibrationIndex >= CALIBRATION_POINTS.length - 1) {
-      setPhase("demo");
-      wg.setGazeListener((data) => {
-        if (data == null) return;
-        setGaze({ x: data.x, y: data.y });
-      });
-      wg.showPredictionPoints(true);
-      setDemoHint(true);
-      window.setTimeout(() => setDemoHint(false), 4000);
-    } else {
-      setCalibrationIndex((i) => i + 1);
     }
-  };
+    const id = window.setInterval(() => {
+      const g = gazeRef.current;
+      setDisplayGaze(g ? { x: g.x, y: g.y } : null);
+    }, 200);
+    return () => clearInterval(id);
+  }, [phase, gazeRef]);
 
-  const finishDemo = async () => {
-    await cleanupWebGazer();
-    setPhase("idle");
-    setCalibrationIndex(0);
-  };
-
-  const recalibrate = async () => {
-    const wg = wgRef.current;
-    if (!wg) return;
-    wg.clearGazeListener();
-    wg.showPredictionPoints(false);
-    await wg.clearData();
-    wg.removeMouseEventListeners();
-    setGaze(null);
-    setCalibrationIndex(0);
-    setPhase("calibrating");
-  };
+  useEffect(() => {
+    if (prevPhaseRef.current === "calibrating" && phase === "tracking") {
+      setDemoHint(true);
+      const t = window.setTimeout(() => setDemoHint(false), 4000);
+      prevPhaseRef.current = phase;
+      return () => clearTimeout(t);
+    }
+    prevPhaseRef.current = phase;
+  }, [phase]);
 
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
@@ -162,8 +61,17 @@ export function EyeTrackingApp() {
         <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
           This prototype explores eye tracking so you can follow recipes with
           messy hands—no scrolling or tapping on the screen. Here you calibrate
-          the webcam tracker and try a live gaze preview. A full recipe UI with
-          gaze-driven controls would build on this foundation.
+          the webcam tracker and try a live gaze preview. Open a recipe in{" "}
+          <strong className="text-slate-300">Cooking mode</strong> to advance
+          steps with your eyes after calibration.
+        </p>
+        <p className="mt-6">
+          <Link
+            href="/recipes"
+            className="text-sm font-medium text-cyan-400 underline-offset-4 hover:text-cyan-300 hover:underline"
+          >
+            Browse recipes (TheMealDB)
+          </Link>
         </p>
       </header>
 
@@ -177,7 +85,7 @@ export function EyeTrackingApp() {
             </p>
             <button
               type="button"
-              onClick={() => void startPipeline()}
+              onClick={() => void start()}
               className="rounded-full bg-cyan-500 px-8 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-400"
             >
               Start calibration
@@ -207,7 +115,7 @@ export function EyeTrackingApp() {
           </div>
         )}
 
-        {(phase === "calibrating" || phase === "demo") && (
+        {(phase === "calibrating" || phase === "tracking") && (
           <div className="flex w-full max-w-4xl flex-col gap-4">
             <div className="flex flex-wrap items-center justify-center gap-3">
               {phase === "calibrating" && (
@@ -217,73 +125,53 @@ export function EyeTrackingApp() {
                   use
                 </span>
               )}
-              {phase === "demo" && (
+              {phase === "tracking" && (
                 <>
                   <span className="rounded-full bg-emerald-500/20 px-4 py-1.5 text-xs font-medium text-emerald-300">
-                    Prototype: red dot = estimated gaze (where a hands-free reader
-                    could register “look here” actions)
+                    Live gaze preview — red dot shows estimated gaze
                   </span>
                   <button
                     type="button"
                     onClick={() => void recalibrate()}
                     className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
                   >
-                    Recalibrate for a new session
+                    Recalibrate
                   </button>
                   <button
                     type="button"
-                    onClick={() => void finishDemo()}
+                    onClick={() => void stop()}
                     className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
                   >
-                    End prototype
+                    End session
                   </button>
                 </>
               )}
             </div>
 
-            {phase === "demo" && demoHint && (
+            {phase === "tracking" && demoHint && (
               <p className="text-center text-sm text-slate-400">
-                Look around the screen: the red dot shows how the system could
-                follow your eyes to advance steps or scroll a recipe hands-free.
+                Look around the screen: the red dot shows how the system follows
+                your eyes. Use Cooking mode on a recipe to go to the next step by
+                holding your gaze on <strong>Next step</strong>.
               </p>
             )}
 
-            {phase === "demo" && gaze && (
+            {phase === "tracking" && displayGaze && (
               <p className="text-center font-mono text-xs text-slate-500">
-                Gaze position (for future UI): x {Math.round(gaze.x)} px · y{" "}
-                {Math.round(gaze.y)} px
+                Gaze: x {Math.round(displayGaze.x)} px · y{" "}
+                {Math.round(displayGaze.y)} px
               </p>
             )}
           </div>
         )}
       </main>
 
-      {/* Calibration targets */}
-      {phase === "calibrating" &&
-        CALIBRATION_POINTS.map((p, i) => {
-          const active = i === calibrationIndex;
-          return (
-            <button
-              key={i}
-              type="button"
-              aria-label={`Recipe reader calibration point ${i + 1} of ${CALIBRATION_POINTS.length}`}
-              className={`fixed z-[100001] flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-4 shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
-                active
-                  ? "border-cyan-400 bg-cyan-500/30 shadow-cyan-500/40"
-                  : "border-white/15 bg-white/5 opacity-40"
-              }`}
-              style={{
-                left: `${p.x * 100}%`,
-                top: `${p.y * 100}%`,
-                pointerEvents: active ? "auto" : "none",
-              }}
-              onClick={(e) => onCalibrationClick(e, i)}
-            >
-              <span className="h-3 w-3 rounded-full bg-white" />
-            </button>
-          );
-        })}
-
+      {phase === "calibrating" && (
+        <CalibrationDots
+          calibrationIndex={calibrationIndex}
+          onPointClick={onCalibrationClick}
+        />
+      )}
     </div>
   );
 }

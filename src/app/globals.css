@@ -25,14 +25,25 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* WebGazer injects a fixed preview; tuck it in the corner */
+/*
+ * WebGazer preview: bottom-left. Calibration grid keeps left/bottom dots inset
+ * (see eyeCalibration.ts) so they are not under this box. z-index above cooking
+ * scrim; pointer-events none so clicks reach CalibrationDots (above video).
+ */
 #webgazerVideoContainer {
   top: auto !important;
-  left: auto !important;
+  right: auto !important;
   bottom: 1rem !important;
-  right: 1rem !important;
-  z-index: 100000 !important;
+  left: 1rem !important;
+  z-index: 100100 !important;
   border-radius: 0.75rem;
   overflow: hidden;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: none !important;
+}
+
+/* Allow dragging/resizing only if WebGazer adds explicit controls */
+#webgazerVideoContainer button,
+#webgazerVideoContainer a {
+  pointer-events: auto !important;
 }
