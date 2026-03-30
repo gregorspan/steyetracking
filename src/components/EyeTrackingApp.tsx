@@ -368,9 +368,9 @@ export function EyeTrackingApp() {
               )}
               {phase === "cooking" && (
                 <>
-                  <span className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium text-slate-200">
-                    Cooking mode: look left = back · look right = next (hold{" "}
-                    {Math.round(DWELL_MS / 100) / 10}s)
+                  <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium text-slate-200">
+                    Claude Cooking mode · look left / right · dwell{" "}
+                    {Math.round(DWELL_MS / 100) / 10}s
                   </span>
                   <button
                     type="button"
@@ -405,44 +405,136 @@ export function EyeTrackingApp() {
             )}
 
             {phase === "cooking" && (
-              <div className="mx-auto w-full max-w-2xl rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/20">
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                        Step {recipeStepIndex + 1} of {RECIPE_STEPS.length}
-                      </p>
-                      <h2 className="mt-2 text-2xl font-semibold text-white">
-                        {RECIPE_STEPS[recipeStepIndex]?.title ?? "Recipe step"}
-                      </h2>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">Dwell</span>
-                      <div className="h-2 w-28 overflow-hidden rounded-full bg-white/10">
+              <section className="mx-auto w-full max-w-3xl">
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/30 backdrop-blur">
+                  <div className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-500/15 ring-1 ring-cyan-400/20">
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="text-cyan-200"
+                            >
+                              <path
+                                d="M12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9 4.03 9 9 9Z"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                              />
+                              <path
+                                d="M8.2 12.2c1.3-1.9 2.6-2.85 3.8-2.85s2.5.95 3.8 2.85"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                              />
+                              <path
+                                d="M12 12.6v3.2"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">
+                              Recipe · hands-free
+                            </p>
+                            <h2 className="mt-1 text-lg font-semibold text-white">
+                              Quick demo recipe
+                            </h2>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400">Dwell</span>
+                          <div className="h-2 w-36 overflow-hidden rounded-full bg-white/10">
+                            <div
+                              className={`h-full bg-cyan-400 transition-[width,opacity] ${
+                                dwell.zone ? "opacity-100" : "opacity-60"
+                              }`}
+                              style={{
+                                width: `${Math.round(dwell.progress * 100)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="h-2 overflow-hidden rounded-full bg-white/10">
                         <div
-                          className="h-full bg-cyan-400 transition-[width]"
-                          style={{ width: `${Math.round(dwell.progress * 100)}%` }}
+                          className="h-full bg-gradient-to-r from-cyan-400/70 via-cyan-400 to-emerald-400/70 transition-[width]"
+                          style={{
+                            width: `${Math.round(
+                              ((recipeStepIndex + 1) / RECIPE_STEPS.length) * 100,
+                            )}%`,
+                          }}
                         />
                       </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs text-slate-400">
+                          Step{" "}
+                          <span className="font-semibold text-slate-200">
+                            {recipeStepIndex + 1}
+                          </span>{" "}
+                          of{" "}
+                          <span className="font-semibold text-slate-200">
+                            {RECIPE_STEPS.length}
+                          </span>
+                        </p>
+                        <div className="flex items-center gap-1.5">
+                          {RECIPE_STEPS.map((_, i) => {
+                            const active = i === recipeStepIndex;
+                            const done = i < recipeStepIndex;
+                            return (
+                              <span
+                                key={i}
+                                className={`h-2 w-2 rounded-full transition ${
+                                  active
+                                    ? "bg-cyan-300 shadow-[0_0_0_4px_rgba(34,211,238,0.15)]"
+                                    : done
+                                      ? "bg-emerald-400/80"
+                                      : "bg-white/15"
+                                }`}
+                                aria-hidden="true"
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-3xl border border-white/10 bg-slate-950/30 p-6">
+                      <h3 className="text-3xl font-semibold tracking-tight text-white">
+                        {RECIPE_STEPS[recipeStepIndex]?.title ?? "Recipe step"}
+                      </h3>
+                      <p className="mt-3 text-base leading-relaxed text-slate-200">
+                        {RECIPE_STEPS[recipeStepIndex]?.body ??
+                          "Add recipe content here."}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4 text-xs text-slate-400">
+                      <span>
+                        Left edge:{" "}
+                        <span className="font-semibold text-slate-200">Back</span>
+                        {recipeStepIndex === 0 ? " (start)" : ""}
+                      </span>
+                      <span>
+                        Right edge:{" "}
+                        <span className="font-semibold text-slate-200">Next</span>
+                        {recipeStepIndex === RECIPE_STEPS.length - 1
+                          ? " (end)"
+                          : ""}
+                      </span>
                     </div>
                   </div>
-
-                  <p className="text-sm leading-relaxed text-slate-200">
-                    {RECIPE_STEPS[recipeStepIndex]?.body ??
-                      "Add recipe content here."}
-                  </p>
-
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>
-                      Look left to go back{recipeStepIndex === 0 ? " (start)" : ""}
-                    </span>
-                    <span>
-                      Look right to go next
-                      {recipeStepIndex === RECIPE_STEPS.length - 1 ? " (end)" : ""}
-                    </span>
-                  </div>
                 </div>
-              </div>
+              </section>
             )}
           </div>
         )}
@@ -451,13 +543,75 @@ export function EyeTrackingApp() {
       {phase === "cooking" && (
         <>
           <div
-            className="pointer-events-none fixed inset-y-0 left-0 z-[99999] w-[22vw] border-r border-white/5 bg-gradient-to-r from-white/5 to-transparent"
+            className={`pointer-events-none fixed inset-y-0 left-0 z-[99999] w-[22vw] border-r border-white/5 bg-gradient-to-r from-white/5 to-transparent transition ${
+              dwell.zone === "left" ? "from-cyan-500/15" : ""
+            }`}
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none fixed inset-y-0 right-0 z-[99999] w-[22vw] border-l border-white/5 bg-gradient-to-l from-white/5 to-transparent"
+            className={`pointer-events-none fixed inset-y-0 right-0 z-[99999] w-[22vw] border-l border-white/5 bg-gradient-to-l from-white/5 to-transparent transition ${
+              dwell.zone === "right" ? "from-cyan-500/15" : ""
+            }`}
             aria-hidden="true"
           />
+          <div
+            className="pointer-events-none fixed left-5 top-1/2 z-[100000] -translate-y-1/2"
+            aria-hidden="true"
+          >
+            <div
+              className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs backdrop-blur transition ${
+                dwell.zone === "left"
+                  ? "border-cyan-400/30 bg-cyan-500/10 text-cyan-100"
+                  : "border-white/10 bg-slate-950/40 text-slate-300"
+              }`}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M14.5 5.5 8 12l6.5 6.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="font-medium">Back</span>
+            </div>
+          </div>
+          <div
+            className="pointer-events-none fixed right-5 top-1/2 z-[100000] -translate-y-1/2"
+            aria-hidden="true"
+          >
+            <div
+              className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs backdrop-blur transition ${
+                dwell.zone === "right"
+                  ? "border-cyan-400/30 bg-cyan-500/10 text-cyan-100"
+                  : "border-white/10 bg-slate-950/40 text-slate-300"
+              }`}
+            >
+              <span className="font-medium">Next</span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9.5 5.5 16 12l-6.5 6.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
           <div
             className="pointer-events-none fixed bottom-6 left-1/2 z-[100000] w-full max-w-xl -translate-x-1/2 px-4"
             aria-hidden="true"
@@ -465,13 +619,15 @@ export function EyeTrackingApp() {
             <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-center text-xs text-slate-300 backdrop-blur">
               {dwell.zone ? (
                 <span>
-                  Holding gaze on{" "}
-                  <span className="font-semibold text-white">{dwell.zone}</span>{" "}
+                  Hold to{" "}
+                  <span className="font-semibold text-white">
+                    {dwell.zone === "left" ? "go back" : "go next"}
+                  </span>{" "}
                   ({Math.round(dwell.progress * 100)}%)
                 </span>
               ) : (
                 <span>
-                  Hold gaze on left/right edge to navigate. No clicks needed.
+                  Look to the left or right edge to navigate. No clicks needed.
                 </span>
               )}
             </div>
