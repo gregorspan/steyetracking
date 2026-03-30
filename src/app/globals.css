@@ -1,22 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0d0d0f;
-  --foreground: #e8e8ec;
+  --background: #FAFAF9;
+  --foreground: #1A1A1E;
+  --muted: #8E8E93;
+  --accent: #E8850A;
+  --border: #E5E5E3;
+  --surface: #FFFFFF;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Inter, system-ui, -apple-system, "Segoe UI",
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
 /*
@@ -30,10 +37,11 @@ body {
   bottom: 1rem !important;
   left: 1rem !important;
   z-index: 100100 !important;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
   pointer-events: none !important;
+  border: 1px solid var(--border);
 }
 
 /* Allow dragging/resizing only if WebGazer adds explicit controls */

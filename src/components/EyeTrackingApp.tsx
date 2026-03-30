@@ -49,42 +49,45 @@ export function EyeTrackingApp() {
   }, [phase, gazeRef]);
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      <header className="border-b border-white/10 px-6 py-8 text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-400/90">
+    <div className="relative flex min-h-screen flex-col bg-[#FAFAF9] text-[#1A1A1E]">
+      <header className="border-b border-[#E5E5E3] px-6 py-10 text-center">
+        <p className="text-xs font-medium text-[#8E8E93]">
           University project · hands-free cooking
         </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+        <h1
+          className="mt-2 text-3xl font-semibold text-[#1A1A1E] sm:text-4xl"
+          style={{ letterSpacing: "-0.02em" }}
+        >
           Hands-free recipe reader
         </h1>
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
+        <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-[#8E8E93]">
           This prototype explores eye tracking so you can follow recipes with messy
-          hands-no scrolling or tapping on the screen. Here you calibrate the webcam
+          hands — no scrolling or tapping on the screen. Here you calibrate the webcam
           tracker and try a live gaze preview. Open a recipe in{" "}
-          <strong className="text-slate-300">Cooking mode</strong> to advance steps
+          <strong className="text-[#1A1A1E]">Cooking mode</strong> to advance steps
           with your eyes and voice.
         </p>
         <p className="mt-6">
           <Link
             href="/"
-            className="text-sm font-medium text-cyan-400 underline-offset-4 hover:text-cyan-300 hover:underline"
+            className="text-sm font-medium text-[#E8850A] transition hover:text-[#d4780a]"
           >
-            Open recipe search
+            Open recipe search →
           </Link>
         </p>
       </header>
 
-      <main className="flex flex-1 flex-col items-center px-4 pb-16 pt-8">
+      <main className="flex flex-1 flex-col items-center px-4 pb-16 pt-10">
         {phase === "idle" && (
           <div className="flex max-w-md flex-col items-center gap-6 text-center">
-            <p className="text-sm text-slate-400">
+            <p className="text-[15px] text-[#8E8E93]">
               Grant camera access so the page can estimate where you are looking.
               Use Chrome or Edge on HTTPS or localhost for the most reliable results.
             </p>
             <button
               type="button"
               onClick={() => void start()}
-              className="rounded-full bg-cyan-500 px-8 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-400"
+              className="rounded-full bg-[#E8850A] px-8 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#d4780a]"
             >
               Start calibration
             </button>
@@ -92,19 +95,19 @@ export function EyeTrackingApp() {
         )}
 
         {phase === "loading" && (
-          <p className="text-sm text-slate-400">Loading the tracker and camera…</p>
+          <p className="text-sm text-[#8E8E93]">Loading the tracker and camera…</p>
         )}
 
         {phase === "error" && error && (
-          <div className="max-w-md rounded-2xl border border-red-500/30 bg-red-950/40 px-6 py-4 text-center">
-            <p className="text-sm text-red-200">{error}</p>
+          <div className="max-w-md border border-red-200 bg-red-50 px-6 py-4 text-center">
+            <p className="text-sm text-red-600">{error}</p>
             <button
               type="button"
               onClick={() => {
                 setPhase("idle");
                 void cleanupWebGazer();
               }}
-              className="mt-4 rounded-full border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10"
+              className="mt-4 rounded px-4 py-2 text-sm text-red-600 border border-red-200 transition-colors duration-150 hover:bg-red-100"
             >
               Back to start
             </button>
@@ -115,27 +118,27 @@ export function EyeTrackingApp() {
           <div className="flex w-full max-w-4xl flex-col gap-4">
             <div className="flex flex-wrap items-center justify-center gap-3">
               {phase === "calibrating" && (
-                <span className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium text-slate-300">
+                <span className="rounded px-4 py-1.5 text-xs font-medium text-[#8E8E93] border border-[#E5E5E3]">
                   Step {calibrationIndex + 1} of {CALIBRATION_POINTS.length}: look at
                   the dot, then click.
                 </span>
               )}
               {phase === "tracking" && (
                 <>
-                  <span className="rounded-full bg-emerald-500/20 px-4 py-1.5 text-xs font-medium text-emerald-300">
+                  <span className="rounded px-4 py-1.5 text-xs font-medium text-[#E8850A] border border-[#E8850A]/30 bg-[#E8850A]/5">
                     Live gaze preview — red dot shows estimated gaze
                   </span>
                   <button
                     type="button"
                     onClick={() => void recalibrate()}
-                    className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
+                    className="rounded px-4 py-1.5 text-xs text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
                   >
                     Recalibrate
                   </button>
                   <button
                     type="button"
                     onClick={() => void stop()}
-                    className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
+                    className="rounded px-4 py-1.5 text-xs text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
                   >
                     End session
                   </button>
@@ -144,14 +147,14 @@ export function EyeTrackingApp() {
             </div>
 
             {phase === "tracking" && demoHint && (
-              <p className="text-center text-sm text-slate-400">
+              <p className="text-center text-sm text-[#8E8E93]">
                 Look around the screen: the red dot shows how the system follows your
                 eyes.
               </p>
             )}
 
             {phase === "tracking" && displayGaze && (
-              <p className="text-center font-mono text-xs text-slate-500">
+              <p className="text-center font-mono text-xs text-[#8E8E93]">
                 Gaze: x {Math.round(displayGaze.x)} px · y{" "}
                 {Math.round(displayGaze.y)} px
               </p>

@@ -24,57 +24,56 @@ async function getHomeRecipes() {
 export default async function Home() {
   const recipes = await getHomeRecipes();
   return (
-    <div className="min-h-screen bg-[#0D0D0F] text-[#E8E8EC]">
+    <div className="min-h-screen bg-[#FAFAF9] text-[#1A1A1E]">
       <SiteNav />
-      <main className="mx-auto w-full max-w-6xl px-5 py-10 sm:py-14">
-        <p className="text-xs uppercase tracking-[0.22em] text-[#BFC0CC]">
-          Look &amp; Cook
-        </p>
-        <div className="mt-4 grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-end">
+      <main className="mx-auto w-full max-w-4xl px-5 py-14 sm:py-20">
+        <div className="mb-16 grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-start">
           <div>
-            <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+            <h1
+              className="text-4xl font-semibold sm:text-5xl"
+              style={{ letterSpacing: "-0.02em", lineHeight: 1.15 }}
+            >
               Cook without touching
               <br />
               your screen.
             </h1>
-            <p className="mt-5 max-w-2xl text-sm leading-relaxed text-[#BFC0CC] sm:text-base">
+            <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-[#8E8E93]">
               Search recipes and move through steps using eye tracking, voice
-              commands, or both. Built for real kitchen moments when your hands are
-              wet, messy, or busy.
+              commands, or both. Built for real kitchen moments when your hands
+              are wet, messy, or busy.
             </p>
           </div>
 
-          <div className="border border-white/10 p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-[#BFC0CC]">
-              How It Works
-            </p>
-            <ol className="mt-4 space-y-3 text-sm text-[#E8E8EC]">
+          <div className="border border-[#E5E5E3] p-5">
+            <p className="text-sm font-semibold text-[#1A1A1E]">How it works</p>
+            <ol className="mt-4 space-y-3 text-[15px] text-[#1A1A1E]">
               <li>
-                <span className="text-[#F5A623]">1.</span> Search and open a recipe.
+                <span className="font-semibold text-[#E8850A]">1.</span>{" "}
+                Search and open a recipe.
               </li>
               <li>
-                <span className="text-[#F5A623]">2.</span> Start cooking mode and
-                calibrate eye tracking.
+                <span className="font-semibold text-[#E8850A]">2.</span>{" "}
+                Start cooking mode and calibrate eye tracking.
               </li>
               <li>
-                <span className="text-[#F5A623]">3.</span> Navigate steps with gaze
-                zones or voice commands.
+                <span className="font-semibold text-[#E8850A]">3.</span>{" "}
+                Navigate steps with gaze zones or voice commands.
               </li>
             </ol>
           </div>
         </div>
 
-        <section id="search-recipes" className="mt-10 border-t border-white/10 pt-8">
-          <p className="text-xs uppercase tracking-[0.16em] text-[#BFC0CC]">
-            Search
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+        <section id="search-recipes" className="border-t border-[#E5E5E3] pt-10">
+          <h2
+            className="text-2xl font-semibold"
+            style={{ letterSpacing: "-0.02em" }}
+          >
             Find any recipe
           </h2>
-          <p className="mt-3 max-w-3xl text-sm text-[#BFC0CC]">
+          <p className="mt-2 text-[15px] text-[#8E8E93]">
             Type ingredients or dish names and open a recipe directly.
           </p>
-          <div className="mt-5">
+          <div className="mt-6">
             <RecipeSearch
               showLabel={false}
               showDebounceHint={false}
@@ -83,23 +82,23 @@ export default async function Home() {
           </div>
         </section>
 
-        <section id="recipes-catalog" className="mt-12 border-t border-white/10 pt-8">
-          <p className="text-xs uppercase tracking-[0.16em] text-[#BFC0CC]">
-            Featured
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-            Start with one of this week's top 3 recipes
+        <section id="recipes-catalog" className="mt-16 border-t border-[#E5E5E3] pt-10">
+          <h2
+            className="text-2xl font-semibold"
+            style={{ letterSpacing: "-0.02em" }}
+          >
+            Featured recipes
           </h2>
-          <p className="mt-3 max-w-3xl text-sm text-[#BFC0CC]">
+          <p className="mt-2 text-[15px] text-[#8E8E93]">
             Pick one and jump straight into cooking mode.
           </p>
 
-          <ul className="mt-6 grid gap-4 sm:grid-cols-3">
+          <ul className="mt-8 grid gap-5 sm:grid-cols-3">
             {recipes.map((r) => (
               <li key={r.id}>
                 <Link
                   href={`/recipes/${r.id}`}
-                  className="group block border border-white/10 bg-[#121216] p-2 transition hover:border-[#E8E8EC]"
+                  className="group block border border-[#E5E5E3] bg-white transition-colors duration-150 hover:border-[#1A1A1E]"
                 >
                   {r.thumbnailUrl ? (
                     <Image
@@ -110,13 +109,13 @@ export default async function Home() {
                       className="h-44 w-full object-cover"
                     />
                   ) : (
-                    <div className="h-44 w-full border border-white/10" />
+                    <div className="h-44 w-full bg-[#F0F0EE]" />
                   )}
-                  <span className="mt-3 flex items-center justify-between px-1 pb-1">
-                    <span className="font-medium text-[#E8E8EC] line-clamp-2">
+                  <span className="mt-3 flex items-center justify-between px-3 pb-3">
+                    <span className="font-medium text-[#1A1A1E] line-clamp-2 text-[15px]">
                       {r.title}
                     </span>
-                    <span className="ml-3 shrink-0 text-xs text-[#BFC0CC] group-hover:text-[#E8E8EC]">
+                    <span className="ml-3 shrink-0 text-xs text-[#8E8E93] transition group-hover:text-[#1A1A1E]">
                       Open →
                     </span>
                   </span>

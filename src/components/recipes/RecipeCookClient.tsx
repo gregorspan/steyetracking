@@ -352,13 +352,16 @@ export function RecipeCookClient({ recipe }: Props) {
   }, [voiceEnabled]);
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-[#0D0D0F] text-[#E8E8EC]">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-8">
+    <div className="relative flex min-h-screen flex-col bg-[#FAFAF9] text-[#1A1A1E]">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5E5E3] bg-[#FAFAF9] px-4 py-4 sm:px-8">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-widest text-[#BFC0CC]">
+          <p className="text-xs font-medium text-[#8E8E93]">
             Cooking mode
           </p>
-          <h1 className="truncate text-lg font-semibold text-[#E8E8EC] sm:text-xl">
+          <h1
+            className="truncate text-lg font-semibold text-[#1A1A1E] sm:text-xl"
+            style={{ letterSpacing: "-0.01em" }}
+          >
             {recipe.title}
           </h1>
         </div>
@@ -367,37 +370,37 @@ export function RecipeCookClient({ recipe }: Props) {
             <button
               type="button"
               onClick={() => void eye.start()}
-              className="border border-[#E8E8EC] bg-[#E8E8EC] px-5 py-2.5 text-sm font-semibold text-[#0D0D0F] hover:bg-transparent hover:text-[#E8E8EC]"
+              className="rounded-full bg-[#1A1A1E] px-5 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#333]"
             >
               Enable eye tracking
             </button>
           )}
           {eye.phase === "loading" && (
-            <span className="text-xs text-[#BFC0CC]">Starting camera…</span>
+            <span className="text-xs text-[#8E8E93]">Starting camera…</span>
           )}
           {eye.phase === "tracking" && (
             <>
-              <span className="border border-[#F5A623]/50 bg-[#F5A623]/10 px-3 py-1 text-xs font-medium text-[#F5A623]">
-                Gaze smoothed · dwell ~{Math.round(DWELL_MS / 100) / 10}s
+              <span className="rounded px-3 py-1 text-xs font-medium text-[#E8850A] border border-[#E8850A]/30 bg-[#E8850A]/5">
+                Gaze active · dwell ~{Math.round(DWELL_MS / 100) / 10}s
               </span>
               <button
                 type="button"
                 onClick={() => setShowGazeDot((v) => !v)}
-                className="border border-white/20 px-3 py-1.5 text-xs text-[#E8E8EC] hover:bg-white/10"
+                className="rounded px-3 py-1.5 text-xs text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
               >
-                {showGazeDot ? "Hide red dot" : "Show red dot"}
+                {showGazeDot ? "Hide dot" : "Show dot"}
               </button>
               <button
                 type="button"
                 onClick={() => void eye.recalibrate()}
-                className="border border-white/20 px-3 py-1.5 text-xs text-[#E8E8EC] hover:bg-white/10"
+                className="rounded px-3 py-1.5 text-xs text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
               >
                 Recalibrate
               </button>
               <button
                 type="button"
                 onClick={() => void eye.stop()}
-                className="border border-white/20 px-3 py-1.5 text-xs text-[#E8E8EC] hover:bg-white/10"
+                className="rounded px-3 py-1.5 text-xs text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
               >
                 Turn off
               </button>
@@ -407,10 +410,10 @@ export function RecipeCookClient({ recipe }: Props) {
             <button
               type="button"
               onClick={() => setVoiceEnabled((v) => !v)}
-              className={`border px-5 py-2.5 text-sm font-semibold ${
+              className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors duration-150 ${
                 voiceEnabled
-                  ? "border-[#F5A623] bg-[#F5A623] text-[#0D0D0F]"
-                  : "border-[#E8E8EC] text-[#E8E8EC] hover:bg-white/10"
+                  ? "bg-[#E8850A] text-white hover:bg-[#d4780a]"
+                  : "border border-[#E5E5E3] text-[#1A1A1E] hover:bg-[#F0F0EE]"
               }`}
             >
               {voiceEnabled ? "Voice on" : "Enable voice"}
@@ -418,13 +421,13 @@ export function RecipeCookClient({ recipe }: Props) {
           )}
           <Link
             href={`/recipes/${recipe.id}`}
-            className="border border-white/20 px-4 py-2 text-sm text-[#BFC0CC] hover:text-[#E8E8EC] hover:bg-white/5"
+            className="rounded px-4 py-2 text-sm text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
           >
             Recipe details
           </Link>
           <Link
             href="/"
-            className="border border-white/20 px-4 py-2 text-sm text-[#BFC0CC] hover:text-[#E8E8EC] hover:bg-white/5"
+            className="rounded px-4 py-2 text-sm text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
           >
             Home
           </Link>
@@ -432,11 +435,11 @@ export function RecipeCookClient({ recipe }: Props) {
       </header>
 
       {eye.phase === "error" && eye.error && (
-        <div className="mx-4 mt-4 rounded-xl border border-red-500/30 bg-red-950/50 px-4 py-3 text-sm text-red-100 sm:mx-8">
+        <div className="mx-4 mt-4 border-l-2 border-red-400 bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-8">
           <p>{eye.error}</p>
           <button
             type="button"
-            className="mt-2 rounded-full border border-white/20 px-3 py-1 text-xs text-white hover:bg-white/10"
+            className="mt-2 rounded px-3 py-1 text-xs text-red-600 border border-red-200 transition-colors duration-150 hover:bg-red-100"
             onClick={() => {
               eye.setPhase("idle");
               void eye.cleanupWebGazer();
@@ -447,19 +450,19 @@ export function RecipeCookClient({ recipe }: Props) {
         </div>
       )}
       {voiceError && (
-        <div className="mx-4 mt-4 border border-[#F5A623]/40 bg-[#F5A623]/10 px-4 py-3 text-sm text-[#E8E8EC] sm:mx-8">
+        <div className="mx-4 mt-4 border-l-2 border-[#E8850A] bg-[#E8850A]/5 px-4 py-3 text-sm text-[#1A1A1E] sm:mx-8">
           {voiceError}
         </div>
       )}
       {postCalibHint && !showGuide && (
         <div className="fixed inset-0 z-[100130] flex items-start justify-center px-4 pt-[25vh] pointer-events-none">
-          <div className="w-full max-w-xl border border-[#F5A623]/60 bg-[#0D0D0F]/95 px-6 py-5 text-center text-[#E8E8EC] backdrop-blur-sm">
-            <p className="text-xs uppercase tracking-[0.18em] text-[#F5A623]">
+          <div className="w-full max-w-xl border border-[#E5E5E3] bg-white/95 px-6 py-5 text-center text-[#1A1A1E] backdrop-blur-sm">
+            <p className="text-xs font-semibold text-[#E8850A]">
               Calibration complete
             </p>
-            <p className="mt-3 text-base sm:text-lg">
-              Hold your gaze on the <strong className="text-[#F5A623]">right side</strong>{" "}
-              (next) or <strong className="text-[#F5A623]">left side</strong> (back)
+            <p className="mt-3 text-[15px] sm:text-base">
+              Hold your gaze on the <strong className="text-[#E8850A]">right side</strong>{" "}
+              (next) or <strong className="text-[#E8850A]">left side</strong> (back)
               for about <strong>{Math.round(DWELL_MS / 100) / 10}s</strong>.
             </p>
           </div>
@@ -467,26 +470,28 @@ export function RecipeCookClient({ recipe }: Props) {
       )}
       {voiceHelpHint && !showGuide && (
         <div className="fixed inset-0 z-[100125] flex items-start justify-center px-4 pt-24 pointer-events-none">
-          <div className="w-full max-w-md border border-[#F5A623]/60 bg-[#0D0D0F]/95 px-5 py-4 text-sm text-[#E8E8EC] backdrop-blur-sm">
-            <p className="text-xs uppercase tracking-[0.16em] text-[#F5A623]">
+          <div className="w-full max-w-md border border-[#E5E5E3] bg-white/95 px-5 py-4 text-sm text-[#1A1A1E] backdrop-blur-sm">
+            <p className="text-xs font-semibold text-[#E8850A]">
               Voice quick tips
             </p>
-            <p className="mt-2">
-              Say <strong>next</strong>, <strong>previous</strong>,{" "}
-              <strong>ingredients</strong>, or <strong>repeat</strong>.
+            <p className="mt-2 text-[#8E8E93]">
+              Say <strong className="text-[#1A1A1E]">next</strong>,{" "}
+              <strong className="text-[#1A1A1E]">previous</strong>,{" "}
+              <strong className="text-[#1A1A1E]">ingredients</strong>, or{" "}
+              <strong className="text-[#1A1A1E]">repeat</strong>.
             </p>
           </div>
         </div>
       )}
 
       {eye.phase === "calibrating" && (
-        <div className="fixed inset-0 z-[100000] flex flex-col items-center bg-slate-950/55 px-4 pt-16 backdrop-blur-[2px]">
-          <p className="mb-2 max-w-md text-center text-sm text-slate-200">
-            Keep your face in the <strong className="text-white">camera preview</strong>{" "}
+        <div className="fixed inset-0 z-[100000] flex flex-col items-center bg-[#FAFAF9]/80 px-4 pt-16 backdrop-blur-[2px]">
+          <p className="mb-2 max-w-md text-center text-sm text-[#8E8E93]">
+            Keep your face in the <strong className="text-[#1A1A1E]">camera preview</strong>{" "}
             (bottom-left). Look at each dot and click it ({eye.calibrationIndex + 1}/
             {CALIBRATION_POINTS.length}). Then use gaze on{" "}
-            <strong className="text-white">Start cooking</strong> and{" "}
-            <strong className="text-white">Next step</strong>.
+            <strong className="text-[#1A1A1E]">Start cooking</strong> and{" "}
+            <strong className="text-[#1A1A1E]">Next step</strong>.
           </p>
           <CalibrationDots
             calibrationIndex={eye.calibrationIndex}
@@ -496,40 +501,43 @@ export function RecipeCookClient({ recipe }: Props) {
       )}
 
       {showGuide && (
-        <div className="fixed inset-0 z-[100120] flex items-center justify-center bg-[#0D0D0F]/90 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl border border-white/15 bg-[#111115] p-6 text-[#E8E8EC] sm:p-8">
-            <h2 className="text-xl font-semibold sm:text-2xl">
+        <div className="fixed inset-0 z-[100120] flex items-center justify-center bg-[#FAFAF9]/92 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl border border-[#E5E5E3] bg-white p-6 sm:p-8">
+            <h2
+              className="text-xl font-semibold sm:text-2xl"
+              style={{ letterSpacing: "-0.02em" }}
+            >
               Hands-free controls
             </h2>
-            <p className="mt-3 text-sm text-[#BFC0CC]">
+            <p className="mt-2 text-[15px] text-[#8E8E93]">
               You can use eye tracking, voice control, or both at the same time.
             </p>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="border border-white/15 bg-[#0D0D0F] p-4">
-                <p className="text-sm font-semibold text-[#E8E8EC]">Eye tracking</p>
-                <p className="mt-2 text-xs text-[#BFC0CC]">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="border border-[#E5E5E3] p-4">
+                <p className="text-sm font-semibold text-[#1A1A1E]">Eye tracking</p>
+                <p className="mt-2 text-xs text-[#8E8E93]">
                   Enable eye tracking to calibrate. In step mode, look at the right
                   zone for Next and left zone for Previous.
                 </p>
               </div>
-              <div className="border border-white/15 bg-[#0D0D0F] p-4">
-                <p className="text-sm font-semibold text-[#E8E8EC]">Voice commands</p>
-                <ul className="mt-2 space-y-1 text-xs text-[#BFC0CC]">
+              <div className="border border-[#E5E5E3] p-4">
+                <p className="text-sm font-semibold text-[#1A1A1E]">Voice commands</p>
+                <ul className="mt-2 space-y-1 text-xs text-[#8E8E93]">
                   <li>
-                    <strong>next / forward / continue</strong> → go to next step
+                    <strong className="text-[#1A1A1E]">next / forward / continue</strong> → go to next step
                   </li>
                   <li>
-                    <strong>previous / back</strong> → go to previous step
+                    <strong className="text-[#1A1A1E]">previous / back</strong> → go to previous step
                   </li>
                   <li>
-                    <strong>start cooking</strong> → jump to step 1
+                    <strong className="text-[#1A1A1E]">start cooking</strong> → jump to step 1
                   </li>
                   <li>
-                    <strong>ingredients</strong> → open ingredients screen
+                    <strong className="text-[#1A1A1E]">ingredients</strong> → open ingredients screen
                   </li>
                   <li>
-                    <strong>repeat / read</strong> → read current step aloud
+                    <strong className="text-[#1A1A1E]">repeat / read</strong> → read current step aloud
                   </li>
                 </ul>
               </div>
@@ -543,7 +551,7 @@ export function RecipeCookClient({ recipe }: Props) {
                   setIndex(0);
                   setShowGuide(false);
                 }}
-                className="border border-[#E8E8EC] bg-[#E8E8EC] px-6 py-2.5 text-sm font-semibold text-[#0D0D0F] hover:bg-transparent hover:text-[#E8E8EC]"
+                className="rounded-full bg-[#E8850A] px-6 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#d4780a]"
               >
                 Start cooking now
               </button>
@@ -553,7 +561,7 @@ export function RecipeCookClient({ recipe }: Props) {
                   setCookPhase("ingredients");
                   setShowGuide(false);
                 }}
-                className="border border-white/20 px-6 py-2.5 text-sm text-[#BFC0CC] hover:text-[#E8E8EC] hover:bg-white/5"
+                className="rounded px-6 py-2.5 text-sm text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
               >
                 Review ingredients first
               </button>
@@ -562,35 +570,38 @@ export function RecipeCookClient({ recipe }: Props) {
         </div>
       )}
 
-      <main className="flex flex-1 flex-col justify-center px-4 py-10 sm:px-10">
+      <main className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-10">
         {showIngredients ? (
           <>
-            <h2 className="mb-6 text-center text-lg font-semibold text-white sm:text-xl">
+            <h2
+              className="mb-6 text-center text-lg font-semibold text-[#1A1A1E] sm:text-xl"
+              style={{ letterSpacing: "-0.01em" }}
+            >
               Ingredients
             </h2>
             {recipe.ingredients.length > 0 ? (
-              <ul className="mx-auto grid max-w-2xl gap-2 sm:grid-cols-2">
+              <ul className="mx-auto grid max-w-2xl gap-0 sm:grid-cols-2">
                 {recipe.ingredients.map((ing) => (
                   <li
                     key={`${ing.name}-${ing.measure}`}
-                    className="border border-white/10 bg-[#121216] px-4 py-3 text-left text-[#E8E8EC]"
+                    className="border-b border-[#E5E5E3] px-4 py-3 text-left text-[15px]"
                   >
-                    <span className="font-medium text-[#E8E8EC]">{ing.name}</span>
+                    <span className="font-medium text-[#1A1A1E]">{ing.name}</span>
                     {ing.measure ? (
-                      <span className="text-[#BFC0CC]"> · {ing.measure}</span>
+                      <span className="text-[#8E8E93]"> · {ing.measure}</span>
                     ) : null}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mx-auto max-w-md text-center text-sm text-[#BFC0CC]">
+              <p className="mx-auto max-w-md text-center text-sm text-[#8E8E93]">
                 No ingredient list for this recipe in TheMealDB—you can still
                 start the steps.
               </p>
             )}
             {eye.phase === "tracking" && (
-              <p className="mx-auto mt-10 max-w-lg text-center text-xs text-[#BFC0CC]">
-                Look at <strong className="text-[#F5A623]">Start cooking</strong>{" "}
+              <p className="mx-auto mt-10 max-w-lg text-center text-xs text-[#8E8E93]">
+                Look at <strong className="text-[#E8850A]">Start cooking</strong>{" "}
                 for ~{Math.round(DWELL_MS / 100) / 10}s to begin (or tap the
                 button). Gaze is smoothed so the red dot moves more steadily.
                 {voiceEnabled &&
@@ -600,32 +611,35 @@ export function RecipeCookClient({ recipe }: Props) {
           </>
         ) : (
           <>
-            <p className="mb-6 text-center text-sm text-slate-500">
+            <p className="mb-6 text-center text-sm text-[#8E8E93]">
               Step {index + 1} of {total}
             </p>
-            <p className="mx-auto max-w-3xl text-center text-2xl font-medium leading-relaxed tracking-tight text-white sm:text-3xl md:text-4xl">
+            <p
+              className="mx-auto max-w-3xl text-center text-2xl font-medium leading-relaxed text-[#1A1A1E] sm:text-3xl md:text-4xl"
+              style={{ letterSpacing: "-0.01em" }}
+            >
               {step}
             </p>
             <button
               type="button"
               onClick={() => setCookPhase("ingredients")}
-              className="mx-auto mt-10 border border-white/20 px-5 py-2 text-sm text-[#BFC0CC] hover:border-[#E8E8EC] hover:text-[#E8E8EC]"
+              className="mx-auto mt-10 rounded px-5 py-2 text-sm text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
             >
               Back to ingredients
             </button>
             {eye.phase === "tracking" && (
-              <p className="mx-auto mt-6 max-w-lg text-center text-xs text-[#BFC0CC]">
+              <p className="mx-auto mt-6 max-w-lg text-center text-xs text-[#8E8E93]">
                 In step mode, gaze at the{" "}
-                <strong className="text-[#F5A623]">right third</strong> for Next, or{" "}
-                <strong className="text-[#F5A623]">left third</strong> for Previous
+                <strong className="text-[#E8850A]">right third</strong> for Next, or{" "}
+                <strong className="text-[#E8850A]">left third</strong> for Previous
                 (~{Math.round(DWELL_MS / 100) / 10}s).
                 {voiceEnabled &&
                   " Voice commands: next, previous, ingredients, repeat."}
               </p>
             )}
             {voiceEnabled && lastHeard && !isSpeakingOutLoud && (
-              <p className="mx-auto mt-2 max-w-lg text-center text-[11px] text-violet-300/80">
-                Heard: "{lastHeard}"
+              <p className="mx-auto mt-2 max-w-lg text-center text-[11px] text-[#8E8E93]">
+                Heard: &ldquo;{lastHeard}&rdquo;
               </p>
             )}
           </>
@@ -636,22 +650,22 @@ export function RecipeCookClient({ recipe }: Props) {
         <>
           <div
             ref={prevZoneRef}
-            className={`pointer-events-none fixed top-16 bottom-0 left-0 z-10 w-1/3 rounded-r-3xl border-r transition ${
+            className={`pointer-events-none fixed top-16 bottom-0 left-0 z-10 w-1/3 border-r transition-all duration-200 ${
               dwellFlash === "prev"
-                ? "border-[#F5A623]/70 bg-[#F5A623]/12"
+                ? "border-[#E8850A]/50 bg-[#E8850A]/8"
                 : showZoneHint
-                  ? "border-cyan-500/35 bg-cyan-500/5"
+                  ? "border-[#E8850A]/20 bg-[#E8850A]/3"
                   : "border-transparent bg-transparent"
             }`}
             aria-hidden="true"
           />
           <div
             ref={nextZoneRef}
-            className={`pointer-events-none fixed top-16 right-0 bottom-0 z-10 w-1/3 rounded-l-3xl border-l transition ${
+            className={`pointer-events-none fixed top-16 right-0 bottom-0 z-10 w-1/3 border-l transition-all duration-200 ${
               dwellFlash === "next"
-                ? "border-[#F5A623]/70 bg-[#F5A623]/12"
+                ? "border-[#E8850A]/50 bg-[#E8850A]/8"
                 : showZoneHint
-                  ? "border-cyan-500/35 bg-cyan-500/5"
+                  ? "border-[#E8850A]/20 bg-[#E8850A]/3"
                   : "border-transparent bg-transparent"
             }`}
             aria-hidden="true"
@@ -667,10 +681,10 @@ export function RecipeCookClient({ recipe }: Props) {
               aria-label="Previous step"
               disabled={index <= 0}
               onClick={() => setIndex((i) => Math.max(0, i - 1))}
-              className={`group flex h-14 w-14 items-center justify-center rounded-full border-2 transition sm:h-16 sm:w-16 disabled:cursor-not-allowed disabled:opacity-40 ${
+              className={`group flex h-14 w-14 items-center justify-center rounded-full border-2 transition-colors duration-150 sm:h-16 sm:w-16 disabled:cursor-not-allowed disabled:opacity-30 ${
                 dwellFlash === "prev"
-                  ? "border-[#F5A623] bg-[#F5A623]/20 text-[#F5A623]"
-                  : "border-white/30 bg-[#121216] text-[#E8E8EC] hover:border-[#E8E8EC]"
+                  ? "border-[#E8850A] bg-[#E8850A]/10 text-[#E8850A]"
+                  : "border-[#E5E5E3] bg-white text-[#1A1A1E] hover:border-[#1A1A1E]"
               }`}
             >
               <span className="text-2xl leading-none">←</span>
@@ -682,10 +696,10 @@ export function RecipeCookClient({ recipe }: Props) {
               aria-label="Next step"
               disabled={index >= total - 1}
               onClick={() => setIndex((i) => Math.min(total - 1, i + 1))}
-              className={`group flex h-14 w-14 items-center justify-center rounded-full border-2 transition sm:h-16 sm:w-16 disabled:cursor-not-allowed disabled:opacity-40 ${
+              className={`group flex h-14 w-14 items-center justify-center rounded-full border-2 transition-colors duration-150 sm:h-16 sm:w-16 disabled:cursor-not-allowed disabled:opacity-30 ${
                 dwellFlash === "next"
-                  ? "border-[#F5A623] bg-[#F5A623] text-[#0D0D0F]"
-                  : "border-white/30 bg-[#121216] text-[#E8E8EC] hover:border-[#E8E8EC]"
+                  ? "border-[#E8850A] bg-[#E8850A] text-white"
+                  : "border-[#E5E5E3] bg-white text-[#1A1A1E] hover:border-[#1A1A1E]"
               }`}
             >
               <span className="text-2xl leading-none">→</span>
@@ -694,7 +708,7 @@ export function RecipeCookClient({ recipe }: Props) {
         </>
       )}
 
-      <footer className="border-t border-white/10 px-4 py-8 sm:px-8">
+      <footer className="border-t border-[#E5E5E3] px-4 py-8 sm:px-8">
         <div
           className={`mx-auto flex w-full max-w-5xl flex-wrap items-center gap-6 ${
             showIngredients ? "justify-center" : "justify-between"
@@ -703,10 +717,10 @@ export function RecipeCookClient({ recipe }: Props) {
           {showIngredients ? (
             <div
               ref={startHitRef}
-              className={`flex min-h-[6rem] min-w-[min(100%,20rem)] items-center justify-center border-2 border-dashed border-transparent p-6 transition ${
+              className={`flex min-h-[6rem] min-w-[min(100%,20rem)] items-center justify-center border-2 border-dashed p-6 transition-colors duration-200 ${
                 dwellFlash === "start"
-                  ? "border-[#F5A623]/60 bg-[#F5A623]/10"
-                  : ""
+                  ? "border-[#E8850A]/50 bg-[#E8850A]/5"
+                  : "border-[#E5E5E3]"
               }`}
             >
               <button
@@ -715,7 +729,7 @@ export function RecipeCookClient({ recipe }: Props) {
                   setCookPhase("steps");
                   setIndex(0);
                 }}
-                className="min-h-[3.75rem] min-w-[16rem] border border-[#E8E8EC] bg-[#E8E8EC] px-10 py-4 text-lg font-semibold text-[#0D0D0F] transition hover:bg-transparent hover:text-[#E8E8EC]"
+                className="min-h-[3.75rem] min-w-[16rem] rounded-full bg-[#E8850A] px-10 py-4 text-lg font-semibold text-white transition-colors duration-150 hover:bg-[#d4780a]"
               >
                 Start cooking
               </button>
