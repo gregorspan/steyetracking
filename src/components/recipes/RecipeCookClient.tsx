@@ -29,8 +29,8 @@ export function RecipeCookClient({ recipe }: Props) {
   const total = steps.length;
 
   const startHitRef = useRef<HTMLDivElement>(null);
-  const prevHitRef = useRef<HTMLDivElement>(null);
-  const nextHitRef = useRef<HTMLDivElement>(null);
+  const prevZoneRef = useRef<HTMLDivElement>(null);
+  const nextZoneRef = useRef<HTMLDivElement>(null);
 
   const eye = useWebGazerSession({
     showPredictionPointsWhileTracking: true,
@@ -61,8 +61,8 @@ export function RecipeCookClient({ recipe }: Props) {
       return [{ id: "start", ref: startHitRef, active: true }];
     }
     return [
-      { id: "prev", ref: prevHitRef, active: index > 0 },
-      { id: "next", ref: nextHitRef, active: index < total - 1 },
+      { id: "prev", ref: prevZoneRef, active: index > 0 },
+      { id: "next", ref: nextZoneRef, active: index < total - 1 },
     ];
   }, [cookPhase, index, total]);
 
@@ -223,15 +223,38 @@ export function RecipeCookClient({ recipe }: Props) {
             </button>
             {eye.phase === "tracking" && (
               <p className="mx-auto mt-6 max-w-lg text-center text-xs text-slate-500">
-                Hold gaze on the large <strong className="text-slate-400">Next</strong> /{" "}
-                <strong className="text-slate-400">Previous</strong> zones (~
-                {Math.round(DWELL_MS / 100) / 10}s). Extra margin around buttons
-                counts as a hit.
+                In step mode, gaze at the{" "}
+                <strong className="text-slate-400">bottom-right third</strong> for
+                Next, or <strong className="text-slate-400">bottom-left third</strong>{" "}
+                for Previous (~{Math.round(DWELL_MS / 100) / 10}s).
               </p>
             )}
           </>
         )}
       </main>
+
+      {!showIngredients && eye.phase === "tracking" && (
+        <>
+          <div
+            ref={prevZoneRef}
+            className={`pointer-events-none fixed bottom-0 left-0 z-10 h-[53%] w-[42%] rounded-tr-3xl border-t border-r transition ${
+              dwellFlash === "prev"
+                ? "border-cyan-400/70 bg-cyan-500/10"
+                : "border-cyan-500/35 bg-cyan-500/5"
+            }`}
+            aria-hidden="true"
+          />
+          <div
+            ref={nextZoneRef}
+            className={`pointer-events-none fixed right-0 bottom-0 z-10 h-[53%] w-[42%] rounded-tl-3xl border-t border-l transition ${
+              dwellFlash === "next"
+                ? "border-cyan-400/70 bg-cyan-500/10"
+                : "border-cyan-500/35 bg-cyan-500/5"
+            }`}
+            aria-hidden="true"
+          />
+        </>
+      )}
 
       <footer className="border-t border-white/10 px-4 py-8 sm:px-8">
         <div className="mx-auto flex max-w-3xl flex-wrap justify-center gap-6">
@@ -258,7 +281,6 @@ export function RecipeCookClient({ recipe }: Props) {
           ) : (
             <>
               <div
-                ref={prevHitRef}
                 className={`flex min-h-[6rem] min-w-[12rem] items-center justify-center rounded-3xl border-2 border-dashed border-transparent p-4 transition ${
                   dwellFlash === "prev"
                     ? "border-cyan-400/60 bg-cyan-500/10"
@@ -279,7 +301,6 @@ export function RecipeCookClient({ recipe }: Props) {
                 </button>
               </div>
               <div
-                ref={nextHitRef}
                 className={`flex min-h-[6rem] min-w-[12rem] items-center justify-center rounded-3xl border-2 border-dashed border-transparent p-4 transition ${
                   dwellFlash === "next"
                     ? "border-cyan-400/60 bg-cyan-500/10"
