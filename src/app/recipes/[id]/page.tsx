@@ -19,24 +19,24 @@ export default async function RecipeDetailPage({ params }: Props) {
   if (!recipe) notFound();
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] text-[#1A1A1E]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)]">
       <SiteNav />
       <article className="mx-auto max-w-3xl px-5 py-12">
-        <div className="mb-12 grid gap-8 border-b border-[#E5E5E3] pb-10 md:grid-cols-[200px_1fr]">
+        <div className="mb-12 grid gap-8 border-b border-[var(--border)] pb-10 md:grid-cols-[200px_1fr]">
           {recipe.thumbnailUrl ? (
             <Image
               src={recipe.thumbnailUrl}
               alt={recipe.title}
               width={320}
               height={320}
-              className="h-48 w-full object-cover md:h-52 rounded"
+              className="h-48 w-full rounded object-cover md:h-52"
               priority
             />
           ) : (
-            <div className="h-48 w-full rounded bg-[#F0F0EE] md:h-52" />
+            <div className="h-48 w-full rounded bg-[var(--hover-bg)] md:h-52" />
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-[#8E8E93]">
+            <p className="text-sm text-[var(--muted)]">
               {[recipe.category, recipe.area].filter(Boolean).join(" · ") ||
                 "TheMealDB"}
             </p>
@@ -47,24 +47,24 @@ export default async function RecipeDetailPage({ params }: Props) {
               {recipe.title}
             </h1>
 
-            <div className="mt-8 border border-[#E5E5E3] bg-white p-5">
-              <p className="text-sm font-semibold text-[#1A1A1E]">
+            <div className="mt-8 border border-[var(--border)] bg-[var(--surface)] p-5">
+              <p className="text-sm font-semibold text-[var(--fg)]">
                 Hands-free mode
               </p>
-              <p className="mt-1.5 text-[15px] text-[#8E8E93]">
+              <p className="mt-1.5 text-[15px] text-[var(--muted)]">
                 Opens a focused step-by-step view with eye tracking and voice
                 commands.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link
                   href={`/cook/${recipe.id}`}
-                  className="rounded-full bg-[#E8850A] px-6 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#d4780a]"
+                  className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[var(--accent-hover)]"
                 >
                   Start cooking mode
                 </Link>
                 <Link
                   href="/"
-                  className="rounded px-5 py-2.5 text-sm text-[#8E8E93] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
+                  className="rounded px-5 py-2.5 text-sm text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--hover-bg)] hover:text-[var(--fg)]"
                 >
                   Back to home
                 </Link>
@@ -74,13 +74,13 @@ export default async function RecipeDetailPage({ params }: Props) {
             <div className="mt-5 flex flex-wrap gap-2">
               <Link
                 href="#ingredients"
-                className="rounded px-3 py-1.5 text-xs text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:border-[#1A1A1E] hover:text-[#1A1A1E]"
+                className="rounded border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] transition-colors duration-150 hover:border-[var(--fg)] hover:text-[var(--fg)]"
               >
                 Ingredients
               </Link>
               <Link
                 href="#steps"
-                className="rounded px-3 py-1.5 text-xs text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:border-[#1A1A1E] hover:text-[#1A1A1E]"
+                className="rounded border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] transition-colors duration-150 hover:border-[var(--fg)] hover:text-[var(--fg)]"
               >
                 Steps
               </Link>
@@ -96,15 +96,15 @@ export default async function RecipeDetailPage({ params }: Props) {
             >
               Ingredients
             </h2>
-            <ul className="grid gap-x-6 gap-y-0 sm:grid-cols-2">
+            <ul className="grid gap-x-6 sm:grid-cols-2">
               {recipe.ingredients.map((ing) => (
                 <li
                   key={`${ing.name}-${ing.measure}`}
-                  className="border-b border-[#E5E5E3] py-2.5 text-[15px]"
+                  className="border-b border-[var(--border)] py-2.5 text-[15px]"
                 >
-                  <span className="font-medium text-[#1A1A1E]">{ing.name}</span>
+                  <span className="font-medium text-[var(--fg)]">{ing.name}</span>
                   {ing.measure ? (
-                    <span className="text-[#8E8E93]"> · {ing.measure}</span>
+                    <span className="text-[var(--muted)]"> · {ing.measure}</span>
                   ) : null}
                 </li>
               ))}
@@ -121,11 +121,14 @@ export default async function RecipeDetailPage({ params }: Props) {
           </h2>
           <ol className="space-y-5">
             {recipe.steps.map((step, i) => (
-              <li key={i} className="grid grid-cols-[2rem_1fr] gap-3 border-b border-[#E5E5E3] pb-5">
-                <span className="text-sm font-semibold text-[#E8850A]">
+              <li
+                key={i}
+                className="grid grid-cols-[2rem_1fr] gap-3 border-b border-[var(--border)] pb-5"
+              >
+                <span className="text-sm font-semibold text-[var(--accent)]">
                   {(i + 1).toString().padStart(2, "0")}
                 </span>
-                <p className="text-[15px] leading-relaxed text-[#1A1A1E]">{step}</p>
+                <p className="text-[15px] leading-relaxed text-[var(--fg)]">{step}</p>
               </li>
             ))}
           </ol>

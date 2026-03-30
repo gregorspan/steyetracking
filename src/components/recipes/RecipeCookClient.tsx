@@ -60,9 +60,7 @@ export function RecipeCookClient({ recipe }: Props) {
   const [showZoneHint, setShowZoneHint] = useState(false);
   const [voiceHelpHint, setVoiceHelpHint] = useState(false);
   const [isSpeakingOutLoud, setIsSpeakingOutLoud] = useState(false);
-  const recognitionRef = useRef<{
-    stop: () => void;
-  } | null>(null);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
   const lastVoiceActionMsRef = useRef(0);
   const prevEyePhaseRef = useRef(eye.phase);
   const isSpeakingRef = useRef(false);
@@ -74,12 +72,9 @@ export function RecipeCookClient({ recipe }: Props) {
     }
     const synth = window.speechSynthesis;
     setVoiceError(null);
-    // Gate recognition immediately to avoid "read read" echoes before onstart fires.
     isSpeakingRef.current = true;
     setIsSpeakingOutLoud(true);
-    if (synth.speaking || synth.pending) {
-      synth.cancel();
-    }
+    if (synth.speaking || synth.pending) synth.cancel();
     synth.resume();
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -90,9 +85,7 @@ export function RecipeCookClient({ recipe }: Props) {
     const voices = synth.getVoices();
     const preferred =
       voices.find((v) => v.lang?.toLowerCase().startsWith("en")) ?? voices[0];
-    if (preferred) {
-      utterance.voice = preferred;
-    }
+    if (preferred) utterance.voice = preferred;
 
     let started = false;
     let ended = false;
@@ -112,7 +105,6 @@ export function RecipeCookClient({ recipe }: Props) {
     };
     utterance.onerror = (event) => {
       const e = event as unknown as { error?: string };
-      // Ignore benign interruption errors from cancel/restart races.
       if (e.error === "interrupted" || e.error === "canceled") return;
       if (watchdog) window.clearTimeout(watchdog);
       isSpeakingRef.current = false;
@@ -162,9 +154,7 @@ export function RecipeCookClient({ recipe }: Props) {
 
   const onGazeActivate = useCallback(
     (id: string) => {
-      if (id === "start" || id === "next" || id === "prev") {
-        runAction(id);
-      }
+      if (id === "start" || id === "next" || id === "prev") runAction(id);
     },
     [runAction],
   );
@@ -195,29 +185,11 @@ export function RecipeCookClient({ recipe }: Props) {
 
   const parseVoiceAction = useCallback((text: string): VoiceAction | null => {
     const t = text.toLowerCase();
-    if (
-      t.includes("next") ||
-      t.includes("forward") ||
-      t.includes("continue")
-    ) {
-      return "next";
-    }
-    if (t.includes("previous") || t.includes("back")) {
-      return "prev";
-    }
-    if (
-      t.includes("start cooking") ||
-      t.includes("start") ||
-      t.includes("cook now")
-    ) {
-      return "start";
-    }
-    if (t.includes("ingredients")) {
-      return "ingredients";
-    }
-    if (t.includes("repeat") || t.includes("read")) {
-      return "repeat";
-    }
+    if (t.includes("next") || t.includes("forward") || t.includes("continue")) return "next";
+    if (t.includes("previous") || t.includes("back")) return "prev";
+    if (t.includes("start cooking") || t.includes("start") || t.includes("cook now")) return "start";
+    if (t.includes("ingredients")) return "ingredients";
+    if (t.includes("repeat") || t.includes("read")) return "repeat";
     return null;
   }, []);
 
@@ -258,9 +230,7 @@ export function RecipeCookClient({ recipe }: Props) {
       if (isSpeakingRef.current) return;
       const e = event as {
         resultIndex?: number;
-        results?: ArrayLike<
-          ArrayLike<{ transcript?: string }> & { isFinal?: boolean }
-        >;
+        results?: ArrayLike<ArrayLike<{ transcript?: string }> & { isFinal?: boolean }>;
       };
       if (!e.results) return;
       const startIdx = e.resultIndex ?? 0;
@@ -272,26 +242,16 @@ export function RecipeCookClient({ recipe }: Props) {
         const action = parseVoiceAction(chunk);
         if (!action) continue;
         const now = performance.now();
-        if (now - lastVoiceActionMsRef.current < VOICE_ACTION_COOLDOWN_MS) {
-          continue;
-        }
+        if (now - lastVoiceActionMsRef.current < VOICE_ACTION_COOLDOWN_MS) continue;
         lastVoiceActionMsRef.current = now;
         runAction(action);
-        // If this result is final, stop scanning this event batch.
         if (result.isFinal) break;
       }
     };
-    rec.onerror = () => {
-      setVoiceError("Microphone error. Check permission and try again.");
-    };
+    rec.onerror = () => setVoiceError("Microphone error. Check permission and try again.");
     rec.onend = () => {
-      // Keep listening while toggle is ON.
       if (voiceEnabled) {
-        try {
-          rec.start();
-        } catch {
-          /* ignore restart race */
-        }
+        try { rec.start(); } catch { /* ignore restart race */ }
       }
     };
 
@@ -306,9 +266,7 @@ export function RecipeCookClient({ recipe }: Props) {
     return () => {
       rec.onend = null;
       rec.stop();
-      if (recognitionRef.current === rec) {
-        recognitionRef.current = null;
-      }
+      if (recognitionRef.current === rec) recognitionRef.current = null;
     };
   }, [parseVoiceAction, runAction, voiceEnabled]);
 
@@ -342,24 +300,20 @@ export function RecipeCookClient({ recipe }: Props) {
   }, [showGazeDot, eye.phase]);
 
   useEffect(() => {
-    if (!voiceEnabled) {
-      setVoiceHelpHint(false);
-      return;
-    }
+    if (!voiceEnabled) { setVoiceHelpHint(false); return; }
     setVoiceHelpHint(true);
     const t = window.setTimeout(() => setVoiceHelpHint(false), 6000);
     return () => clearTimeout(t);
   }, [voiceEnabled]);
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-[#FAFAF9] text-[#1A1A1E]">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5E5E3] bg-[#FAFAF9] px-4 py-4 sm:px-8">
+    <div className="relative flex min-h-screen flex-col bg-[var(--bg)] text-[var(--fg)]">
+      {/* ── Header ── */}
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--bg)] px-4 py-4 sm:px-8">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-[#8E8E93]">
-            Cooking mode
-          </p>
+          <p className="text-xs font-medium text-[var(--muted)]">Cooking mode</p>
           <h1
-            className="truncate text-lg font-semibold text-[#1A1A1E] sm:text-xl"
+            className="truncate text-lg font-semibold sm:text-xl"
             style={{ letterSpacing: "-0.01em" }}
           >
             {recipe.title}
@@ -370,37 +324,37 @@ export function RecipeCookClient({ recipe }: Props) {
             <button
               type="button"
               onClick={() => void eye.start()}
-              className="rounded-full bg-[#1A1A1E] px-5 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#333]"
+              className="rounded-full bg-[var(--fg)] px-5 py-2 text-sm font-semibold text-[var(--bg)] transition-colors duration-150 hover:opacity-80"
             >
               Enable eye tracking
             </button>
           )}
           {eye.phase === "loading" && (
-            <span className="text-xs text-[#8E8E93]">Starting camera…</span>
+            <span className="text-xs text-[var(--muted)]">Starting camera…</span>
           )}
           {eye.phase === "tracking" && (
             <>
-              <span className="rounded px-3 py-1 text-xs font-medium text-[#E8850A] border border-[#E8850A]/30 bg-[#E8850A]/5">
+              <span className="rounded border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-1 text-xs font-medium text-[var(--accent)]">
                 Gaze active · dwell ~{Math.round(DWELL_MS / 100) / 10}s
               </span>
               <button
                 type="button"
                 onClick={() => setShowGazeDot((v) => !v)}
-                className="rounded px-3 py-1.5 text-xs text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
+                className="rounded border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--hover-bg)] hover:text-[var(--fg)]"
               >
                 {showGazeDot ? "Hide dot" : "Show dot"}
               </button>
               <button
                 type="button"
                 onClick={() => void eye.recalibrate()}
-                className="rounded px-3 py-1.5 text-xs text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
+                className="rounded border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--hover-bg)] hover:text-[var(--fg)]"
               >
                 Recalibrate
               </button>
               <button
                 type="button"
                 onClick={() => void eye.stop()}
-                className="rounded px-3 py-1.5 text-xs text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
+                className="rounded border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--hover-bg)] hover:text-[var(--fg)]"
               >
                 Turn off
               </button>
@@ -412,8 +366,8 @@ export function RecipeCookClient({ recipe }: Props) {
               onClick={() => setVoiceEnabled((v) => !v)}
               className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors duration-150 ${
                 voiceEnabled
-                  ? "bg-[#E8850A] text-white hover:bg-[#d4780a]"
-                  : "border border-[#E5E5E3] text-[#1A1A1E] hover:bg-[#F0F0EE]"
+                  ? "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]"
+                  : "border border-[var(--border)] text-[var(--fg)] hover:bg-[var(--hover-bg)]"
               }`}
             >
               {voiceEnabled ? "Voice on" : "Enable voice"}
@@ -421,25 +375,26 @@ export function RecipeCookClient({ recipe }: Props) {
           )}
           <Link
             href={`/recipes/${recipe.id}`}
-            className="rounded px-4 py-2 text-sm text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
+            className="rounded border border-[var(--border)] px-4 py-2 text-sm text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--hover-bg)] hover:text-[var(--fg)]"
           >
             Recipe details
           </Link>
           <Link
             href="/"
-            className="rounded px-4 py-2 text-sm text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
+            className="rounded border border-[var(--border)] px-4 py-2 text-sm text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--hover-bg)] hover:text-[var(--fg)]"
           >
             Home
           </Link>
         </div>
       </header>
 
+      {/* ── Inline error banners ── */}
       {eye.phase === "error" && eye.error && (
         <div className="mx-4 mt-4 border-l-2 border-red-400 bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-8">
           <p>{eye.error}</p>
           <button
             type="button"
-            className="mt-2 rounded px-3 py-1 text-xs text-red-600 border border-red-200 transition-colors duration-150 hover:bg-red-100"
+            className="mt-2 rounded border border-red-200 px-3 py-1 text-xs text-red-600 transition-colors duration-150 hover:bg-red-100"
             onClick={() => {
               eye.setPhase("idle");
               void eye.cleanupWebGazer();
@@ -450,48 +405,51 @@ export function RecipeCookClient({ recipe }: Props) {
         </div>
       )}
       {voiceError && (
-        <div className="mx-4 mt-4 border-l-2 border-[#E8850A] bg-[#E8850A]/5 px-4 py-3 text-sm text-[#1A1A1E] sm:mx-8">
+        <div className="mx-4 mt-4 border-l-2 border-[var(--accent)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--fg)] sm:mx-8">
           {voiceError}
         </div>
       )}
+
+      {/* ── Post-calibration hint ── */}
       {postCalibHint && !showGuide && (
-        <div className="fixed inset-0 z-[100130] flex items-start justify-center px-4 pt-[25vh] pointer-events-none">
-          <div className="w-full max-w-xl border border-[#E5E5E3] bg-white/95 px-6 py-5 text-center text-[#1A1A1E] backdrop-blur-sm">
-            <p className="text-xs font-semibold text-[#E8850A]">
+        <div className="pointer-events-none fixed inset-0 z-[100130] flex items-start justify-center px-4 pt-[25vh]">
+          <div className="w-full max-w-xl border border-[var(--border)] bg-[var(--surface)] px-6 py-5 text-center backdrop-blur-sm" style={{ opacity: 0.97 }}>
+            <p className="text-xs font-semibold text-[var(--accent)]">
               Calibration complete
             </p>
             <p className="mt-3 text-[15px] sm:text-base">
-              Hold your gaze on the <strong className="text-[#E8850A]">right side</strong>{" "}
-              (next) or <strong className="text-[#E8850A]">left side</strong> (back)
-              for about <strong>{Math.round(DWELL_MS / 100) / 10}s</strong>.
-            </p>
-          </div>
-        </div>
-      )}
-      {voiceHelpHint && !showGuide && (
-        <div className="fixed inset-0 z-[100125] flex items-start justify-center px-4 pt-24 pointer-events-none">
-          <div className="w-full max-w-md border border-[#E5E5E3] bg-white/95 px-5 py-4 text-sm text-[#1A1A1E] backdrop-blur-sm">
-            <p className="text-xs font-semibold text-[#E8850A]">
-              Voice quick tips
-            </p>
-            <p className="mt-2 text-[#8E8E93]">
-              Say <strong className="text-[#1A1A1E]">next</strong>,{" "}
-              <strong className="text-[#1A1A1E]">previous</strong>,{" "}
-              <strong className="text-[#1A1A1E]">ingredients</strong>, or{" "}
-              <strong className="text-[#1A1A1E]">repeat</strong>.
+              Hold your gaze on the <strong className="text-[var(--accent)]">right side</strong>{" "}
+              (next) or <strong className="text-[var(--accent)]">left side</strong> (back) for about{" "}
+              <strong>{Math.round(DWELL_MS / 100) / 10}s</strong>.
             </p>
           </div>
         </div>
       )}
 
+      {/* ── Voice tips hint ── */}
+      {voiceHelpHint && !showGuide && (
+        <div className="pointer-events-none fixed inset-0 z-[100125] flex items-start justify-center px-4 pt-24">
+          <div className="w-full max-w-md border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm backdrop-blur-sm" style={{ opacity: 0.97 }}>
+            <p className="text-xs font-semibold text-[var(--accent)]">Voice quick tips</p>
+            <p className="mt-2 text-[var(--muted)]">
+              Say <strong className="text-[var(--fg)]">next</strong>,{" "}
+              <strong className="text-[var(--fg)]">previous</strong>,{" "}
+              <strong className="text-[var(--fg)]">ingredients</strong>, or{" "}
+              <strong className="text-[var(--fg)]">repeat</strong>.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Calibration overlay ── */}
       {eye.phase === "calibrating" && (
-        <div className="fixed inset-0 z-[100000] flex flex-col items-center bg-[#FAFAF9]/80 px-4 pt-16 backdrop-blur-[2px]">
-          <p className="mb-2 max-w-md text-center text-sm text-[#8E8E93]">
-            Keep your face in the <strong className="text-[#1A1A1E]">camera preview</strong>{" "}
+        <div className="fixed inset-0 z-[100000] flex flex-col items-center bg-[var(--bg)] px-4 pt-16" style={{ opacity: 0.92 }}>
+          <p className="mb-2 max-w-md text-center text-sm text-[var(--muted)]">
+            Keep your face in the <strong className="text-[var(--fg)]">camera preview</strong>{" "}
             (bottom-left). Look at each dot and click it ({eye.calibrationIndex + 1}/
             {CALIBRATION_POINTS.length}). Then use gaze on{" "}
-            <strong className="text-[#1A1A1E]">Start cooking</strong> and{" "}
-            <strong className="text-[#1A1A1E]">Next step</strong>.
+            <strong className="text-[var(--fg)]">Start cooking</strong> and{" "}
+            <strong className="text-[var(--fg)]">Next step</strong>.
           </p>
           <CalibrationDots
             calibrationIndex={eye.calibrationIndex}
@@ -500,45 +458,36 @@ export function RecipeCookClient({ recipe }: Props) {
         </div>
       )}
 
+      {/* ── Intro guide modal ── */}
       {showGuide && (
-        <div className="fixed inset-0 z-[100120] flex items-center justify-center bg-[#FAFAF9]/92 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl border border-[#E5E5E3] bg-white p-6 sm:p-8">
+        <div className="fixed inset-0 z-[100120] flex items-center justify-center px-4" style={{ background: "color-mix(in srgb, var(--bg) 92%, transparent)" }}>
+          <div className="w-full max-w-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8">
             <h2
               className="text-xl font-semibold sm:text-2xl"
               style={{ letterSpacing: "-0.02em" }}
             >
               Hands-free controls
             </h2>
-            <p className="mt-2 text-[15px] text-[#8E8E93]">
+            <p className="mt-2 text-[15px] text-[var(--muted)]">
               You can use eye tracking, voice control, or both at the same time.
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="border border-[#E5E5E3] p-4">
-                <p className="text-sm font-semibold text-[#1A1A1E]">Eye tracking</p>
-                <p className="mt-2 text-xs text-[#8E8E93]">
+              <div className="border border-[var(--border)] p-4">
+                <p className="text-sm font-semibold">Eye tracking</p>
+                <p className="mt-2 text-xs text-[var(--muted)]">
                   Enable eye tracking to calibrate. In step mode, look at the right
                   zone for Next and left zone for Previous.
                 </p>
               </div>
-              <div className="border border-[#E5E5E3] p-4">
-                <p className="text-sm font-semibold text-[#1A1A1E]">Voice commands</p>
-                <ul className="mt-2 space-y-1 text-xs text-[#8E8E93]">
-                  <li>
-                    <strong className="text-[#1A1A1E]">next / forward / continue</strong> → go to next step
-                  </li>
-                  <li>
-                    <strong className="text-[#1A1A1E]">previous / back</strong> → go to previous step
-                  </li>
-                  <li>
-                    <strong className="text-[#1A1A1E]">start cooking</strong> → jump to step 1
-                  </li>
-                  <li>
-                    <strong className="text-[#1A1A1E]">ingredients</strong> → open ingredients screen
-                  </li>
-                  <li>
-                    <strong className="text-[#1A1A1E]">repeat / read</strong> → read current step aloud
-                  </li>
+              <div className="border border-[var(--border)] p-4">
+                <p className="text-sm font-semibold">Voice commands</p>
+                <ul className="mt-2 space-y-1 text-xs text-[var(--muted)]">
+                  <li><strong className="text-[var(--fg)]">next / forward / continue</strong> → go to next step</li>
+                  <li><strong className="text-[var(--fg)]">previous / back</strong> → go to previous step</li>
+                  <li><strong className="text-[var(--fg)]">start cooking</strong> → jump to step 1</li>
+                  <li><strong className="text-[var(--fg)]">ingredients</strong> → open ingredients screen</li>
+                  <li><strong className="text-[var(--fg)]">repeat / read</strong> → read current step aloud</li>
                 </ul>
               </div>
             </div>
@@ -546,22 +495,15 @@ export function RecipeCookClient({ recipe }: Props) {
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => {
-                  setCookPhase("steps");
-                  setIndex(0);
-                  setShowGuide(false);
-                }}
-                className="rounded-full bg-[#E8850A] px-6 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#d4780a]"
+                onClick={() => { setCookPhase("steps"); setIndex(0); setShowGuide(false); }}
+                className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[var(--accent-hover)]"
               >
                 Start cooking now
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setCookPhase("ingredients");
-                  setShowGuide(false);
-                }}
-                className="rounded px-6 py-2.5 text-sm text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
+                onClick={() => { setCookPhase("ingredients"); setShowGuide(false); }}
+                className="rounded border border-[var(--border)] px-6 py-2.5 text-sm text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--hover-bg)] hover:text-[var(--fg)]"
               >
                 Review ingredients first
               </button>
@@ -570,52 +512,50 @@ export function RecipeCookClient({ recipe }: Props) {
         </div>
       )}
 
+      {/* ── Main content ── */}
       <main className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-10">
         {showIngredients ? (
           <>
             <h2
-              className="mb-6 text-center text-lg font-semibold text-[#1A1A1E] sm:text-xl"
+              className="mb-6 text-center text-lg font-semibold sm:text-xl"
               style={{ letterSpacing: "-0.01em" }}
             >
               Ingredients
             </h2>
             {recipe.ingredients.length > 0 ? (
-              <ul className="mx-auto grid max-w-2xl gap-0 sm:grid-cols-2">
+              <ul className="mx-auto grid max-w-2xl sm:grid-cols-2">
                 {recipe.ingredients.map((ing) => (
                   <li
                     key={`${ing.name}-${ing.measure}`}
-                    className="border-b border-[#E5E5E3] px-4 py-3 text-left text-[15px]"
+                    className="border-b border-[var(--border)] px-4 py-3 text-left text-[15px]"
                   >
-                    <span className="font-medium text-[#1A1A1E]">{ing.name}</span>
+                    <span className="font-medium">{ing.name}</span>
                     {ing.measure ? (
-                      <span className="text-[#8E8E93]"> · {ing.measure}</span>
+                      <span className="text-[var(--muted)]"> · {ing.measure}</span>
                     ) : null}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mx-auto max-w-md text-center text-sm text-[#8E8E93]">
-                No ingredient list for this recipe in TheMealDB—you can still
-                start the steps.
+              <p className="mx-auto max-w-md text-center text-sm text-[var(--muted)]">
+                No ingredient list for this recipe in TheMealDB—you can still start the steps.
               </p>
             )}
             {eye.phase === "tracking" && (
-              <p className="mx-auto mt-10 max-w-lg text-center text-xs text-[#8E8E93]">
-                Look at <strong className="text-[#E8850A]">Start cooking</strong>{" "}
-                for ~{Math.round(DWELL_MS / 100) / 10}s to begin (or tap the
-                button). Gaze is smoothed so the red dot moves more steadily.
-                {voiceEnabled &&
-                  " You can also say: start cooking, next, previous, ingredients, repeat."}
+              <p className="mx-auto mt-10 max-w-lg text-center text-xs text-[var(--muted)]">
+                Look at <strong className="text-[var(--accent)]">Start cooking</strong>{" "}
+                for ~{Math.round(DWELL_MS / 100) / 10}s to begin (or tap the button).
+                {voiceEnabled && " You can also say: start cooking, next, previous, ingredients, repeat."}
               </p>
             )}
           </>
         ) : (
           <>
-            <p className="mb-6 text-center text-sm text-[#8E8E93]">
+            <p className="mb-6 text-center text-sm text-[var(--muted)]">
               Step {index + 1} of {total}
             </p>
             <p
-              className="mx-auto max-w-3xl text-center text-2xl font-medium leading-relaxed text-[#1A1A1E] sm:text-3xl md:text-4xl"
+              className="mx-auto max-w-3xl text-center text-2xl font-medium leading-relaxed sm:text-3xl md:text-4xl"
               style={{ letterSpacing: "-0.01em" }}
             >
               {step}
@@ -623,22 +563,21 @@ export function RecipeCookClient({ recipe }: Props) {
             <button
               type="button"
               onClick={() => setCookPhase("ingredients")}
-              className="mx-auto mt-10 rounded px-5 py-2 text-sm text-[#8E8E93] border border-[#E5E5E3] transition-colors duration-150 hover:bg-[#F0F0EE] hover:text-[#1A1A1E]"
+              className="mx-auto mt-10 rounded border border-[var(--border)] px-5 py-2 text-sm text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--hover-bg)] hover:text-[var(--fg)]"
             >
               Back to ingredients
             </button>
             {eye.phase === "tracking" && (
-              <p className="mx-auto mt-6 max-w-lg text-center text-xs text-[#8E8E93]">
+              <p className="mx-auto mt-6 max-w-lg text-center text-xs text-[var(--muted)]">
                 In step mode, gaze at the{" "}
-                <strong className="text-[#E8850A]">right third</strong> for Next, or{" "}
-                <strong className="text-[#E8850A]">left third</strong> for Previous
+                <strong className="text-[var(--accent)]">right third</strong> for Next, or{" "}
+                <strong className="text-[var(--accent)]">left third</strong> for Previous
                 (~{Math.round(DWELL_MS / 100) / 10}s).
-                {voiceEnabled &&
-                  " Voice commands: next, previous, ingredients, repeat."}
+                {voiceEnabled && " Voice commands: next, previous, ingredients, repeat."}
               </p>
             )}
             {voiceEnabled && lastHeard && !isSpeakingOutLoud && (
-              <p className="mx-auto mt-2 max-w-lg text-center text-[11px] text-[#8E8E93]">
+              <p className="mx-auto mt-2 max-w-lg text-center text-[11px] text-[var(--muted)]">
                 Heard: &ldquo;{lastHeard}&rdquo;
               </p>
             )}
@@ -646,26 +585,27 @@ export function RecipeCookClient({ recipe }: Props) {
         )}
       </main>
 
+      {/* ── Gaze zones ── */}
       {!showIngredients && eye.phase === "tracking" && !showGuide && (
         <>
           <div
             ref={prevZoneRef}
-            className={`pointer-events-none fixed top-16 bottom-0 left-0 z-10 w-1/3 border-r transition-all duration-200 ${
+            className={`pointer-events-none fixed bottom-0 left-0 top-16 z-10 w-1/3 border-r transition-all duration-200 ${
               dwellFlash === "prev"
-                ? "border-[#E8850A]/50 bg-[#E8850A]/8"
+                ? "border-[var(--accent)] bg-[var(--accent)]/10"
                 : showZoneHint
-                  ? "border-[#E8850A]/20 bg-[#E8850A]/3"
+                  ? "border-[var(--accent)]/20 bg-[var(--accent)]/5"
                   : "border-transparent bg-transparent"
             }`}
             aria-hidden="true"
           />
           <div
             ref={nextZoneRef}
-            className={`pointer-events-none fixed top-16 right-0 bottom-0 z-10 w-1/3 border-l transition-all duration-200 ${
+            className={`pointer-events-none fixed bottom-0 right-0 top-16 z-10 w-1/3 border-l transition-all duration-200 ${
               dwellFlash === "next"
-                ? "border-[#E8850A]/50 bg-[#E8850A]/8"
+                ? "border-[var(--accent)] bg-[var(--accent)]/10"
                 : showZoneHint
-                  ? "border-[#E8850A]/20 bg-[#E8850A]/3"
+                  ? "border-[var(--accent)]/20 bg-[var(--accent)]/5"
                   : "border-transparent bg-transparent"
             }`}
             aria-hidden="true"
@@ -673,33 +613,34 @@ export function RecipeCookClient({ recipe }: Props) {
         </>
       )}
 
+      {/* ── Prev / Next buttons ── */}
       {!showIngredients && !showGuide && (
         <>
-          <div className="fixed top-1/2 left-2 z-20 -translate-y-1/2 sm:left-4">
+          <div className="fixed left-2 top-1/2 z-20 -translate-y-1/2 sm:left-4">
             <button
               type="button"
               aria-label="Previous step"
               disabled={index <= 0}
               onClick={() => setIndex((i) => Math.max(0, i - 1))}
-              className={`group flex h-14 w-14 items-center justify-center rounded-full border-2 transition-colors duration-150 sm:h-16 sm:w-16 disabled:cursor-not-allowed disabled:opacity-30 ${
+              className={`flex h-14 w-14 items-center justify-center rounded-full border-2 transition-colors duration-150 sm:h-16 sm:w-16 disabled:cursor-not-allowed disabled:opacity-30 ${
                 dwellFlash === "prev"
-                  ? "border-[#E8850A] bg-[#E8850A]/10 text-[#E8850A]"
-                  : "border-[#E5E5E3] bg-white text-[#1A1A1E] hover:border-[#1A1A1E]"
+                  ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
+                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--fg)] hover:border-[var(--fg)]"
               }`}
             >
               <span className="text-2xl leading-none">←</span>
             </button>
           </div>
-          <div className="fixed top-1/2 right-2 z-20 -translate-y-1/2 sm:right-4">
+          <div className="fixed right-2 top-1/2 z-20 -translate-y-1/2 sm:right-4">
             <button
               type="button"
               aria-label="Next step"
               disabled={index >= total - 1}
               onClick={() => setIndex((i) => Math.min(total - 1, i + 1))}
-              className={`group flex h-14 w-14 items-center justify-center rounded-full border-2 transition-colors duration-150 sm:h-16 sm:w-16 disabled:cursor-not-allowed disabled:opacity-30 ${
+              className={`flex h-14 w-14 items-center justify-center rounded-full border-2 transition-colors duration-150 sm:h-16 sm:w-16 disabled:cursor-not-allowed disabled:opacity-30 ${
                 dwellFlash === "next"
-                  ? "border-[#E8850A] bg-[#E8850A] text-white"
-                  : "border-[#E5E5E3] bg-white text-[#1A1A1E] hover:border-[#1A1A1E]"
+                  ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--fg)] hover:border-[var(--fg)]"
               }`}
             >
               <span className="text-2xl leading-none">→</span>
@@ -708,7 +649,8 @@ export function RecipeCookClient({ recipe }: Props) {
         </>
       )}
 
-      <footer className="border-t border-[#E5E5E3] px-4 py-8 sm:px-8">
+      {/* ── Footer with Start cooking gaze target ── */}
+      <footer className="border-t border-[var(--border)] px-4 py-8 sm:px-8">
         <div
           className={`mx-auto flex w-full max-w-5xl flex-wrap items-center gap-6 ${
             showIngredients ? "justify-center" : "justify-between"
@@ -719,17 +661,14 @@ export function RecipeCookClient({ recipe }: Props) {
               ref={startHitRef}
               className={`flex min-h-[6rem] min-w-[min(100%,20rem)] items-center justify-center border-2 border-dashed p-6 transition-colors duration-200 ${
                 dwellFlash === "start"
-                  ? "border-[#E8850A]/50 bg-[#E8850A]/5"
-                  : "border-[#E5E5E3]"
+                  ? "border-[var(--accent)]/50 bg-[var(--accent)]/5"
+                  : "border-[var(--border)]"
               }`}
             >
               <button
                 type="button"
-                onClick={() => {
-                  setCookPhase("steps");
-                  setIndex(0);
-                }}
-                className="min-h-[3.75rem] min-w-[16rem] rounded-full bg-[#E8850A] px-10 py-4 text-lg font-semibold text-white transition-colors duration-150 hover:bg-[#d4780a]"
+                onClick={() => { setCookPhase("steps"); setIndex(0); }}
+                className="min-h-[3.75rem] min-w-[16rem] rounded-full bg-[var(--accent)] px-10 py-4 text-lg font-semibold text-white transition-colors duration-150 hover:bg-[var(--accent-hover)]"
               >
                 Start cooking
               </button>

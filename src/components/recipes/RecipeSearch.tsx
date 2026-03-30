@@ -128,9 +128,9 @@ export function RecipeSearch({
   return (
     <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <label className="flex flex-col gap-3 text-left text-sm text-[#8E8E93]">
+        <label className="flex flex-col gap-3 text-left text-sm text-[var(--muted)]">
           {showLabel ? "Search TheMealDB" : ""}
-          <div className="flex items-stretch gap-3">
+          <div className="flex items-center gap-3">
             {enableVoiceSearch && (
               <button
                 type="button"
@@ -138,8 +138,8 @@ export function RecipeSearch({
                 aria-label="Voice search"
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 ${
                   listening
-                    ? "border-[#E8850A] bg-[#E8850A] text-white"
-                    : "border-[#E5E5E3] bg-white text-[#8E8E93] hover:border-[#1A1A1E] hover:text-[#1A1A1E]"
+                    ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                    : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--fg)] hover:text-[var(--fg)]"
                 }`}
               >
                 <svg
@@ -165,24 +165,24 @@ export function RecipeSearch({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="e.g. chicken, pasta, curry"
-              className="min-w-0 flex-1 border-b border-[#E5E5E3] bg-transparent px-0 py-2.5 text-[15px] text-[#1A1A1E] placeholder:text-[#8E8E93] focus:border-[#1A1A1E] focus:outline-none transition-colors duration-150"
+              className="min-w-0 flex-1 border-b border-[var(--border)] bg-transparent px-0 py-2.5 text-[15px] text-[var(--fg)] placeholder:text-[var(--muted)] focus:border-[var(--fg)] focus:outline-none transition-colors duration-150"
               autoComplete="off"
               aria-busy={loading}
             />
           </div>
         </label>
         {enableVoiceSearch && voiceHint && (
-          <p className="text-xs text-[#8E8E93]">{voiceHint}</p>
+          <p className="text-xs text-[var(--muted)]">{voiceHint}</p>
         )}
         {showDebounceHint && (
-          <p className="text-xs text-[#8E8E93]">
+          <p className="text-xs text-[var(--muted)]">
             Results appear as you type with a short delay.
           </p>
         )}
       </div>
 
       {loading && (
-        <p className="text-sm text-[#8E8E93]">Searching…</p>
+        <p className="text-sm text-[var(--muted)]">Searching…</p>
       )}
 
       {error && (
@@ -192,17 +192,17 @@ export function RecipeSearch({
       )}
 
       {showEmptyHint && (
-        <p className="text-sm text-[#8E8E93]">
+        <p className="text-sm text-[var(--muted)]">
           No recipes found. Try another keyword.
         </p>
       )}
 
-      <ul className="divide-y divide-[#E5E5E3]">
+      <ul className="divide-y divide-[var(--border)]">
         {recipes.map((r) => (
           <li key={r.id}>
             <Link
               href={`/recipes/${r.id}`}
-              className="group flex items-center gap-4 py-4 transition-colors duration-150 hover:bg-[#F0F0EE] -mx-2 px-2 rounded"
+              className="group -mx-2 flex items-center gap-4 rounded px-2 py-4 transition-colors duration-150 hover:bg-[var(--hover-bg)]"
             >
               {r.thumbnailUrl ? (
                 <Image
@@ -210,14 +210,14 @@ export function RecipeSearch({
                   alt={r.title}
                   width={96}
                   height={96}
-                  className="h-12 w-12 shrink-0 object-cover rounded"
+                  className="h-12 w-12 shrink-0 rounded object-cover"
                 />
               ) : (
-                <div className="h-12 w-12 shrink-0 rounded bg-[#F0F0EE]" />
+                <div className="h-12 w-12 shrink-0 rounded bg-[var(--hover-bg)]" />
               )}
               <span className="flex flex-1 items-center justify-between text-left">
-                <span className="font-medium text-[#1A1A1E] text-[15px]">{r.title}</span>
-                <span className="text-xs text-[#8E8E93] transition group-hover:text-[#1A1A1E]">
+                <span className="text-[15px] font-medium text-[var(--fg)]">{r.title}</span>
+                <span className="text-xs text-[var(--muted)] transition group-hover:text-[var(--fg)]">
                   Open →
                 </span>
               </span>

@@ -1,24 +1,39 @@
 @import "tailwindcss";
 
+/* ── Light (default) ─────────────────────────────────────── */
 :root {
-  --background: #FAFAF9;
-  --foreground: #1A1A1E;
-  --muted: #8E8E93;
-  --accent: #E8850A;
-  --border: #E5E5E3;
-  --surface: #FFFFFF;
+  --bg:           #FAFAF9;
+  --fg:           #1A1A1E;
+  --muted:        #8E8E93;
+  --accent:       #E8850A;
+  --accent-hover: #d4780a;
+  --border:       #E5E5E3;
+  --surface:      #FFFFFF;
+  --hover-bg:     #F0F0EE;
+}
+
+/* ── Dark ────────────────────────────────────────────────── */
+.dark {
+  --bg:           #0D0D0F;
+  --fg:           #E8E8EC;
+  --muted:        #BFC0CC;
+  --accent:       #F5A623;
+  --accent-hover: #f0b040;
+  --border:       #2A2A2E;
+  --surface:      #121216;
+  --hover-bg:     #1E1E22;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
   --font-sans: var(--font-inter);
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--fg);
   font-family: var(--font-inter), Inter, system-ui, -apple-system, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
   font-size: 15px;

@@ -17,10 +17,10 @@ export function CalibrationDots({ calibrationIndex, onPointClick }: Props) {
             key={i}
             type="button"
             aria-label={`Calibration point ${i + 1} of ${CALIBRATION_POINTS.length}`}
-            className={`fixed z-[100110] flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-4 transition duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8850A] ${
+            className={`fixed z-[100110] flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-4 transition duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
               active
-                ? "border-[#E8850A] bg-[#E8850A]/20"
-                : "border-[#E5E5E3] bg-white/60 opacity-40"
+                ? "border-[var(--accent)] bg-[var(--accent)]/20"
+                : "border-[var(--border)] bg-[var(--surface)] opacity-40"
             }`}
             style={{
               left: `${p.x * 100}%`,
@@ -29,7 +29,7 @@ export function CalibrationDots({ calibrationIndex, onPointClick }: Props) {
             }}
             onClick={(e) => onPointClick(e, i)}
           >
-            <span className="h-3 w-3 rounded-full bg-[#E8850A]" />
+            <span className="h-3 w-3 rounded-full bg-[var(--accent)]" />
           </button>
         );
       })}
