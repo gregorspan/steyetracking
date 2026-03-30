@@ -3,7 +3,7 @@
 import type { WebGazerInstance } from "@/types/webgazer";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Phase = "idle" | "loading" | "calibrating" | "demo" | "error";
+type Phase = "idle" | "loading" | "calibrating" | "demo" | "cooking" | "error";
 
 function loadWebGazerScript(): Promise<void> {
   if (typeof window === "undefined") {
@@ -35,14 +35,60 @@ const CALIBRATION_POINTS: { x: number; y: number }[] = [
   { x: 0.88, y: 0.88 },
 ];
 
+const RECIPE_STEPS: { title: string; body: string }[] = [
+  {
+    title: "Prep",
+    body: "Wash hands, gather ingredients, and preheat the oven to 200°C (or 400°F).",
+  },
+  {
+    title: "Mix",
+    body: "Combine dry ingredients in a bowl. Whisk until evenly mixed.",
+  },
+  {
+    title: "Add wet",
+    body: "Add wet ingredients and stir gently until just combined (don’t overmix).",
+  },
+  {
+    title: "Bake",
+    body: "Pour into a pan and bake for 18–22 minutes, until a toothpick comes out clean.",
+  },
+  {
+    title: "Finish",
+    body: "Let cool 10 minutes, then slice and serve.",
+  },
+];
+
+const DWELL_MS = 900;
+const EDGE_ZONE_FRACTION = 0.22;
+
 export function EyeTrackingApp() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [calibrationIndex, setCalibrationIndex] = useState(0);
   const [gaze, setGaze] = useState<{ x: number; y: number } | null>(null);
   const [demoHint, setDemoHint] = useState(false);
+  const [recipeStepIndex, setRecipeStepIndex] = useState(0);
+  const [dwell, setDwell] = useState<{
+    zone: "left" | "right" | null;
+    progress: number;
+  }>({ zone: null, progress: 0 });
 
   const wgRef = useRef<WebGazerInstance | null>(null);
+  const phaseRef = useRef<Phase>(phase);
+  const recipeStepIndexRef = useRef<number>(recipeStepIndex);
+  const dwellRef = useRef<{
+    zone: "left" | "right" | null;
+    enteredAtMs: number | null;
+    lastUiUpdateMs: number;
+  }>({ zone: null, enteredAtMs: null, lastUiUpdateMs: 0 });
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  useEffect(() => {
+    recipeStepIndexRef.current = recipeStepIndex;
+  }, [recipeStepIndex]);
 
   const cleanupWebGazer = useCallback(async () => {
     const wg = wgRef.current;
@@ -63,6 +109,15 @@ export function EyeTrackingApp() {
       void cleanupWebGazer();
     };
   }, [cleanupWebGazer]);
+
+  const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
+  const applyStepChange = useCallback((direction: "prev" | "next") => {
+    setRecipeStepIndex((idx) => {
+      if (direction === "prev") return Math.max(0, idx - 1);
+      return Math.min(RECIPE_STEPS.length - 1, idx + 1);
+    });
+  }, []);
 
   const startPipeline = async () => {
     setError(null);
@@ -123,6 +178,57 @@ export function EyeTrackingApp() {
       wg.setGazeListener((data) => {
         if (data == null) return;
         setGaze({ x: data.x, y: data.y });
+
+        if (phaseRef.current !== "cooking") return;
+
+        const w = window.innerWidth || 1;
+        const xNorm = data.x / w;
+
+        const inLeft = xNorm <= EDGE_ZONE_FRACTION;
+        const inRight = xNorm >= 1 - EDGE_ZONE_FRACTION;
+        const nextZone: "left" | "right" | null = inLeft
+          ? "left"
+          : inRight
+            ? "right"
+            : null;
+
+        const now = performance.now();
+        const s = dwellRef.current;
+
+        if (nextZone !== s.zone) {
+          dwellRef.current = {
+            zone: nextZone,
+            enteredAtMs: nextZone ? now : null,
+            lastUiUpdateMs: s.lastUiUpdateMs,
+          };
+          setDwell({ zone: nextZone, progress: 0 });
+          return;
+        }
+
+        if (!nextZone || s.enteredAtMs == null) {
+          if (dwell.progress !== 0 || dwell.zone !== null) {
+            setDwell({ zone: null, progress: 0 });
+          }
+          return;
+        }
+
+        const elapsed = now - s.enteredAtMs;
+        const progress = clamp01(elapsed / DWELL_MS);
+
+        if (now - s.lastUiUpdateMs > 60) {
+          dwellRef.current.lastUiUpdateMs = now;
+          setDwell({ zone: nextZone, progress });
+        }
+
+        if (elapsed >= DWELL_MS) {
+          applyStepChange(nextZone === "right" ? "next" : "prev");
+          dwellRef.current = {
+            zone: null,
+            enteredAtMs: null,
+            lastUiUpdateMs: now,
+          };
+          setDwell({ zone: null, progress: 0 });
+        }
       });
       wg.showPredictionPoints(true);
       setDemoHint(true);
@@ -136,6 +242,8 @@ export function EyeTrackingApp() {
     await cleanupWebGazer();
     setPhase("idle");
     setCalibrationIndex(0);
+    setRecipeStepIndex(0);
+    setDwell({ zone: null, progress: 0 });
   };
 
   const recalibrate = async () => {
@@ -147,6 +255,9 @@ export function EyeTrackingApp() {
     wg.removeMouseEventListeners();
     setGaze(null);
     setCalibrationIndex(0);
+    setRecipeStepIndex(0);
+    setDwell({ zone: null, progress: 0 });
+    dwellRef.current = { zone: null, enteredAtMs: null, lastUiUpdateMs: 0 };
     setPhase("calibrating");
   };
 
@@ -207,7 +318,7 @@ export function EyeTrackingApp() {
           </div>
         )}
 
-        {(phase === "calibrating" || phase === "demo") && (
+        {(phase === "calibrating" || phase === "demo" || phase === "cooking") && (
           <div className="flex w-full max-w-4xl flex-col gap-4">
             <div className="flex flex-wrap items-center justify-center gap-3">
               {phase === "calibrating" && (
@@ -225,6 +336,22 @@ export function EyeTrackingApp() {
                   </span>
                   <button
                     type="button"
+                    onClick={() => {
+                      setRecipeStepIndex(0);
+                      setDwell({ zone: null, progress: 0 });
+                      dwellRef.current = {
+                        zone: null,
+                        enteredAtMs: null,
+                        lastUiUpdateMs: performance.now(),
+                      };
+                      setPhase("cooking");
+                    }}
+                    className="rounded-full bg-cyan-500 px-4 py-1.5 text-xs font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-400"
+                  >
+                    Enter cooking mode (gaze only)
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => void recalibrate()}
                     className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
                   >
@@ -236,6 +363,28 @@ export function EyeTrackingApp() {
                     className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
                   >
                     End prototype
+                  </button>
+                </>
+              )}
+              {phase === "cooking" && (
+                <>
+                  <span className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium text-slate-200">
+                    Cooking mode: look left = back · look right = next (hold{" "}
+                    {Math.round(DWELL_MS / 100) / 10}s)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPhase("demo")}
+                    className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
+                  >
+                    Exit cooking mode
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void recalibrate()}
+                    className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
+                  >
+                    Recalibrate
                   </button>
                 </>
               )}
@@ -254,9 +403,81 @@ export function EyeTrackingApp() {
                 {Math.round(gaze.y)} px
               </p>
             )}
+
+            {phase === "cooking" && (
+              <div className="mx-auto w-full max-w-2xl rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/20">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                        Step {recipeStepIndex + 1} of {RECIPE_STEPS.length}
+                      </p>
+                      <h2 className="mt-2 text-2xl font-semibold text-white">
+                        {RECIPE_STEPS[recipeStepIndex]?.title ?? "Recipe step"}
+                      </h2>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">Dwell</span>
+                      <div className="h-2 w-28 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full bg-cyan-400 transition-[width]"
+                          style={{ width: `${Math.round(dwell.progress * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm leading-relaxed text-slate-200">
+                    {RECIPE_STEPS[recipeStepIndex]?.body ??
+                      "Add recipe content here."}
+                  </p>
+
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span>
+                      Look left to go back{recipeStepIndex === 0 ? " (start)" : ""}
+                    </span>
+                    <span>
+                      Look right to go next
+                      {recipeStepIndex === RECIPE_STEPS.length - 1 ? " (end)" : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
+
+      {phase === "cooking" && (
+        <>
+          <div
+            className="pointer-events-none fixed inset-y-0 left-0 z-[99999] w-[22vw] border-r border-white/5 bg-gradient-to-r from-white/5 to-transparent"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none fixed inset-y-0 right-0 z-[99999] w-[22vw] border-l border-white/5 bg-gradient-to-l from-white/5 to-transparent"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none fixed bottom-6 left-1/2 z-[100000] w-full max-w-xl -translate-x-1/2 px-4"
+            aria-hidden="true"
+          >
+            <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-center text-xs text-slate-300 backdrop-blur">
+              {dwell.zone ? (
+                <span>
+                  Holding gaze on{" "}
+                  <span className="font-semibold text-white">{dwell.zone}</span>{" "}
+                  ({Math.round(dwell.progress * 100)}%)
+                </span>
+              ) : (
+                <span>
+                  Hold gaze on left/right edge to navigate. No clicks needed.
+                </span>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Calibration targets */}
       {phase === "calibrating" &&
