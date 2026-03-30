@@ -12,7 +12,8 @@ export function SiteNav() {
         className="text-sm font-semibold text-[var(--fg)] transition-colors duration-150 hover:text-[var(--accent)]"
         style={{ letterSpacing: "-0.01em" }}
       >
-        GazeChef
+        Handsfree Kitchen
+
       </Link>
       <div className="flex items-center gap-4 text-sm text-[var(--muted)]">
         <Link href="/" className="transition-colors duration-150 hover:text-[var(--fg)]">

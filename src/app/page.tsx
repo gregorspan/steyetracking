@@ -94,10 +94,10 @@ export default async function Home() {
 
           <ul className="mt-8 grid gap-5 sm:grid-cols-3">
             {recipes.map((r) => (
-              <li key={r.id}>
+              <li key={r.id} className="flex">
                 <Link
                   href={`/recipes/${r.id}`}
-                  className="group block border border-[var(--border)] bg-[var(--surface)] transition-colors duration-150 hover:border-[var(--fg)]"
+                  className="group flex w-full flex-col border border-[var(--border)] bg-[var(--surface)] transition-colors duration-150 hover:border-[var(--fg)]"
                 >
                   {r.thumbnailUrl ? (
                     <Image
@@ -110,7 +110,7 @@ export default async function Home() {
                   ) : (
                     <div className="h-44 w-full bg-[var(--hover-bg)]" />
                   )}
-                  <span className="mt-3 flex items-center justify-between px-3 pb-3">
+                  <span className="mt-3 flex flex-1 items-end justify-between px-3 pb-3">
                     <span className="font-medium text-[var(--fg)] line-clamp-2 text-[15px]">
                       {r.title}
                     </span>
