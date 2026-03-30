@@ -6,7 +6,7 @@ import { useGazeDwell } from "@/hooks/useGazeDwell";
 import { useWebGazerSession } from "@/hooks/useWebGazerSession";
 import type { RecipeDetail } from "@/types/recipe";
 import Link from "next/link";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /** Longer dwell + padding helps noisy webcam gaze. */
 const DWELL_MS = 1500;
@@ -17,14 +17,27 @@ const HIT_PADDING_PX = 36;
 type CookPhase = "ingredients" | "steps";
 
 type Props = { recipe: RecipeDetail };
+type VoiceAction = "start" | "next" | "prev" | "ingredients" | "repeat";
+
+type SpeechRecognitionCtor = new () => {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: unknown) => void) | null;
+  onerror: ((event: unknown) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
 
 export function RecipeCookClient({ recipe }: Props) {
   const steps = useMemo(
     () => (recipe.steps.length > 0 ? recipe.steps : ["No steps available."]),
     [recipe.steps],
   );
-  const [cookPhase, setCookPhase] = useState<CookPhase>("ingredients");
+  const [cookPhase, setCookPhase] = useState<CookPhase>("steps");
   const [index, setIndex] = useState(0);
+  const [showGuide, setShowGuide] = useState(true);
   const step = steps[index];
   const total = steps.length;
 
@@ -37,23 +50,106 @@ export function RecipeCookClient({ recipe }: Props) {
   });
 
   const [dwellFlash, setDwellFlash] = useState<string | null>(null);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [lastHeard, setLastHeard] = useState<string | null>(null);
+  const recognitionRef = useRef<{
+    stop: () => void;
+  } | null>(null);
+
+  const speakText = useCallback((text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setVoiceError("Speech output is not available in this browser.");
+      return;
+    }
+    const synth = window.speechSynthesis;
+    setVoiceError(null);
+    if (synth.speaking || synth.pending) {
+      synth.cancel();
+    }
+    synth.resume();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.95;
+    utterance.volume = 1;
+
+    const voices = synth.getVoices();
+    const preferred =
+      voices.find((v) => v.lang?.toLowerCase().startsWith("en")) ?? voices[0];
+    if (preferred) {
+      utterance.voice = preferred;
+    }
+
+    let started = false;
+    let ended = false;
+    let watchdog = 0;
+    utterance.onstart = () => {
+      started = true;
+      setVoiceError(null);
+    };
+    utterance.onend = () => {
+      ended = true;
+      if (watchdog) window.clearTimeout(watchdog);
+      setVoiceError(null);
+    };
+    utterance.onerror = (event) => {
+      const e = event as unknown as { error?: string };
+      // Ignore benign interruption errors from cancel/restart races.
+      if (e.error === "interrupted" || e.error === "canceled") return;
+      if (watchdog) window.clearTimeout(watchdog);
+      setVoiceError(
+        "Voice output failed. Check tab mute, system output device, and browser sound permission.",
+      );
+    };
+
+    // Speaking in next task improves reliability after recognition callbacks.
+    window.setTimeout(() => {
+      synth.speak(utterance);
+      watchdog = window.setTimeout(() => {
+        if (!started && !ended) {
+          setVoiceError(
+            "Voice output did not start. Try clicking 'Test voice output' again in this tab.",
+          );
+        }
+      }, 2200);
+    }, 60);
+  }, []);
+
+  const runAction = useCallback(
+    (action: VoiceAction | "start" | "next" | "prev") => {
+      if (action === "start") {
+        setCookPhase("steps");
+        setIndex(0);
+        setDwellFlash("start");
+      } else if (action === "next") {
+        setIndex((i) => Math.min(total - 1, i + 1));
+        setDwellFlash("next");
+      } else if (action === "prev") {
+        setIndex((i) => Math.max(0, i - 1));
+        setDwellFlash("prev");
+      } else if (action === "ingredients") {
+        setCookPhase("ingredients");
+      } else if (action === "repeat") {
+        const text =
+          cookPhase === "steps"
+            ? `Step ${index + 1}. ${step}`
+            : `Ingredients view for ${recipe.title}. Say start cooking to begin steps.`;
+        speakText(text);
+      }
+      window.setTimeout(() => setDwellFlash(null), 600);
+    },
+    [cookPhase, index, recipe.title, speakText, step, total],
+  );
 
   const onGazeActivate = useCallback(
     (id: string) => {
-      if (id === "start") {
-        setCookPhase("steps");
-        setIndex(0);
+      if (id === "start" || id === "next" || id === "prev") {
+        runAction(id);
       }
-      if (id === "next") {
-        setIndex((i) => Math.min(total - 1, i + 1));
-      }
-      if (id === "prev") {
-        setIndex((i) => Math.max(0, i - 1));
-      }
-      setDwellFlash(id);
-      window.setTimeout(() => setDwellFlash(null), 600);
     },
-    [total],
+    [runAction],
   );
 
   const gazeRegions = useMemo(() => {
@@ -68,7 +164,7 @@ export function RecipeCookClient({ recipe }: Props) {
 
   useGazeDwell({
     gazeRef: eye.gazeRef,
-    enabled: eye.phase === "tracking",
+    enabled: eye.phase === "tracking" && !showGuide,
     regions: gazeRegions,
     dwellMs: DWELL_MS,
     cooldownMs: COOLDOWN_MS,
@@ -79,6 +175,108 @@ export function RecipeCookClient({ recipe }: Props) {
   });
 
   const showIngredients = cookPhase === "ingredients";
+
+  const parseVoiceAction = useCallback((text: string): VoiceAction | null => {
+    const t = text.toLowerCase();
+    if (
+      t.includes("next") ||
+      t.includes("forward") ||
+      t.includes("continue")
+    ) {
+      return "next";
+    }
+    if (t.includes("previous") || t.includes("back")) {
+      return "prev";
+    }
+    if (
+      t.includes("start cooking") ||
+      t.includes("start") ||
+      t.includes("cook now")
+    ) {
+      return "start";
+    }
+    if (t.includes("ingredients")) {
+      return "ingredients";
+    }
+    if (t.includes("repeat") || t.includes("read")) {
+      return "repeat";
+    }
+    return null;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const maybe = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    const Ctor = maybe.SpeechRecognition ?? maybe.webkitSpeechRecognition;
+    setVoiceSupported(Boolean(Ctor));
+  }, []);
+
+  useEffect(() => {
+    if (!voiceEnabled) {
+      recognitionRef.current?.stop();
+      recognitionRef.current = null;
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const maybe = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    const Ctor = maybe.SpeechRecognition ?? maybe.webkitSpeechRecognition;
+    if (!Ctor) {
+      setVoiceError("Voice recognition is not supported in this browser.");
+      setVoiceEnabled(false);
+      return;
+    }
+
+    setVoiceError(null);
+    const rec = new Ctor();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = "en-US";
+    rec.onresult = (event: unknown) => {
+      const e = event as {
+        results?: ArrayLike<ArrayLike<{ transcript?: string }>>;
+      };
+      const chunk = e.results?.[e.results.length - 1]?.[0]?.transcript;
+      if (!chunk) return;
+      setLastHeard(chunk);
+      const action = parseVoiceAction(chunk);
+      if (action) runAction(action);
+    };
+    rec.onerror = () => {
+      setVoiceError("Microphone error. Check permission and try again.");
+    };
+    rec.onend = () => {
+      // Keep listening while toggle is ON.
+      if (voiceEnabled) {
+        try {
+          rec.start();
+        } catch {
+          /* ignore restart race */
+        }
+      }
+    };
+
+    try {
+      rec.start();
+      recognitionRef.current = rec;
+    } catch {
+      setVoiceError("Could not start voice recognition.");
+      setVoiceEnabled(false);
+    }
+
+    return () => {
+      rec.onend = null;
+      rec.stop();
+      if (recognitionRef.current === rec) {
+        recognitionRef.current = null;
+      }
+    };
+  }, [parseVoiceAction, runAction, voiceEnabled]);
 
   return (
     <div className="relative flex min-h-screen flex-col bg-slate-950 text-slate-100">
@@ -125,6 +323,19 @@ export function RecipeCookClient({ recipe }: Props) {
               </button>
             </>
           )}
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={() => setVoiceEnabled((v) => !v)}
+              className={`rounded-full border px-3 py-1.5 text-xs ${
+                voiceEnabled
+                  ? "border-violet-400/50 bg-violet-500/15 text-violet-200"
+                  : "border-white/20 text-slate-200 hover:bg-white/10"
+              }`}
+            >
+              {voiceEnabled ? "Voice on" : "Enable voice"}
+            </button>
+          )}
           <Link
             href={`/recipes/${recipe.id}`}
             className="rounded-full border border-white/20 px-4 py-2 text-sm text-slate-200 hover:bg-white/10"
@@ -155,6 +366,11 @@ export function RecipeCookClient({ recipe }: Props) {
           </button>
         </div>
       )}
+      {voiceError && (
+        <div className="mx-4 mt-4 rounded-xl border border-amber-500/30 bg-amber-950/40 px-4 py-3 text-sm text-amber-100 sm:mx-8">
+          {voiceError}
+        </div>
+      )}
 
       {eye.phase === "calibrating" && (
         <div className="fixed inset-0 z-[100000] flex flex-col items-center bg-slate-950/55 px-4 pt-16 backdrop-blur-[2px]">
@@ -169,6 +385,73 @@ export function RecipeCookClient({ recipe }: Props) {
             calibrationIndex={eye.calibrationIndex}
             onPointClick={eye.onCalibrationClick}
           />
+        </div>
+      )}
+
+      {showGuide && (
+        <div className="fixed inset-0 z-[100120] flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/15 bg-slate-900/95 p-6 text-slate-100 shadow-2xl shadow-black/50 sm:p-8">
+            <h2 className="text-xl font-semibold text-white sm:text-2xl">
+              Hands-free controls
+            </h2>
+            <p className="mt-3 text-sm text-slate-300">
+              You can use eye tracking, voice control, or both at the same time.
+            </p>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-cyan-500/25 bg-cyan-500/10 p-4">
+                <p className="text-sm font-semibold text-cyan-200">Eye tracking</p>
+                <p className="mt-2 text-xs text-slate-300">
+                  Enable eye tracking to calibrate. In step mode, look at the
+                  bottom-right zone for Next and bottom-left for Previous.
+                </p>
+              </div>
+              <div className="rounded-xl border border-violet-500/25 bg-violet-500/10 p-4">
+                <p className="text-sm font-semibold text-violet-200">Voice commands</p>
+                <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                  <li>
+                    <strong>next / forward / continue</strong> → go to next step
+                  </li>
+                  <li>
+                    <strong>previous / back</strong> → go to previous step
+                  </li>
+                  <li>
+                    <strong>start cooking</strong> → jump to step 1
+                  </li>
+                  <li>
+                    <strong>ingredients</strong> → open ingredients screen
+                  </li>
+                  <li>
+                    <strong>repeat / read</strong> → read current step aloud
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setCookPhase("steps");
+                  setIndex(0);
+                  setShowGuide(false);
+                }}
+                className="rounded-full bg-cyan-500 px-6 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400"
+              >
+                Start cooking now
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCookPhase("ingredients");
+                  setShowGuide(false);
+                }}
+                className="rounded-full border border-white/20 px-6 py-2.5 text-sm text-slate-200 hover:bg-white/10"
+              >
+                Review ingredients first
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -203,6 +486,8 @@ export function RecipeCookClient({ recipe }: Props) {
                 Look at <strong className="text-slate-400">Start cooking</strong>{" "}
                 for ~{Math.round(DWELL_MS / 100) / 10}s to begin (or tap the
                 button). Gaze is smoothed so the red dot moves more steadily.
+                {voiceEnabled &&
+                  " You can also say: start cooking, next, previous, ingredients, repeat."}
               </p>
             )}
           </>
@@ -227,13 +512,20 @@ export function RecipeCookClient({ recipe }: Props) {
                 <strong className="text-slate-400">bottom-right third</strong> for
                 Next, or <strong className="text-slate-400">bottom-left third</strong>{" "}
                 for Previous (~{Math.round(DWELL_MS / 100) / 10}s).
+                {voiceEnabled &&
+                  " Voice commands: next, previous, ingredients, repeat."}
+              </p>
+            )}
+            {voiceEnabled && lastHeard && (
+              <p className="mx-auto mt-2 max-w-lg text-center text-[11px] text-violet-300/80">
+                Heard: "{lastHeard}"
               </p>
             )}
           </>
         )}
       </main>
 
-      {!showIngredients && eye.phase === "tracking" && (
+      {!showIngredients && eye.phase === "tracking" && !showGuide && (
         <>
           <div
             ref={prevZoneRef}
