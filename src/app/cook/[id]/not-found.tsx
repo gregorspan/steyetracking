@@ -8,10 +8,10 @@ export default function CookNotFound() {
         Cannot open cooking mode for this recipe.
       </p>
       <Link
-        href="/recipes"
+        href="/"
         className="mt-8 rounded-full bg-cyan-500 px-6 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400"
       >
-        Search recipes
+        Back to home
       </Link>
     </div>
   );

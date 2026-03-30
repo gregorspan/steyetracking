@@ -7,11 +7,23 @@ import { useEffect, useState } from "react";
 
 const DEBOUNCE_MS = 400;
 
-export function RecipeSearch() {
+type Props = {
+  showLabel?: boolean;
+  showDebounceHint?: boolean;
+  enableVoiceSearch?: boolean;
+};
+
+export function RecipeSearch({
+  showLabel = true,
+  showDebounceHint = true,
+  enableVoiceSearch = false,
+}: Props) {
   const [query, setQuery] = useState("");
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+  const [voiceHint, setVoiceHint] = useState<string | null>(null);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -60,48 +72,122 @@ export function RecipeSearch() {
   const showEmptyHint =
     query.trim().length > 0 && !loading && recipes.length === 0 && !error;
 
+  const startVoiceSearch = () => {
+    if (!enableVoiceSearch || typeof window === "undefined") return;
+    const maybe = window as unknown as {
+      SpeechRecognition?: new () => {
+        lang: string;
+        interimResults: boolean;
+        continuous: boolean;
+        onresult: ((event: unknown) => void) | null;
+        onerror: ((event: unknown) => void) | null;
+        onend: (() => void) | null;
+        start: () => void;
+      };
+      webkitSpeechRecognition?: new () => {
+        lang: string;
+        interimResults: boolean;
+        continuous: boolean;
+        onresult: ((event: unknown) => void) | null;
+        onerror: ((event: unknown) => void) | null;
+        onend: (() => void) | null;
+        start: () => void;
+      };
+    };
+    const Ctor = maybe.SpeechRecognition ?? maybe.webkitSpeechRecognition;
+    if (!Ctor) {
+      setVoiceHint("Voice search is not supported in this browser.");
+      return;
+    }
+
+    setVoiceHint(null);
+    const rec = new Ctor();
+    rec.lang = "en-US";
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.onresult = (event: unknown) => {
+      const e = event as {
+        results?: ArrayLike<ArrayLike<{ transcript?: string }>>;
+      };
+      const chunk = e.results?.[e.results.length - 1]?.[0]?.transcript?.trim();
+      if (chunk) setQuery(chunk);
+    };
+    rec.onerror = () => {
+      setVoiceHint("Mic access failed. Check permission and try again.");
+    };
+    rec.onend = () => setListening(false);
+    try {
+      setListening(true);
+      rec.start();
+    } catch {
+      setListening(false);
+      setVoiceHint("Could not start voice input.");
+    }
+  };
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <label className="flex flex-col gap-2 text-left text-sm text-slate-400">
-          Search TheMealDB
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g. chicken, pasta, curry"
-            className="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-500 focus:border-cyan-500/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-            autoComplete="off"
-            aria-busy={loading}
-          />
+        <label className="flex flex-col gap-2 text-left text-sm text-[#BFC0CC]">
+          {showLabel ? "Search TheMealDB" : ""}
+          <div className="flex items-stretch gap-2">
+            {enableVoiceSearch && (
+              <button
+                type="button"
+                onClick={startVoiceSearch}
+                aria-label="Voice search"
+                className={`h-12 w-12 shrink-0 rounded-full border text-lg transition ${
+                  listening
+                    ? "border-[#F5A623] bg-[#F5A623] text-[#0D0D0F]"
+                    : "border-white/20 bg-[#121216] text-[#E8E8EC] hover:border-[#E8E8EC]"
+                }`}
+              >
+                🎤
+              </button>
+            )}
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="e.g. chicken, pasta, curry"
+              className="min-w-0 flex-1 border border-white/20 bg-[#121216] px-4 py-3 text-base text-[#E8E8EC] placeholder:text-[#BFC0CC] focus:border-[#E8E8EC] focus:outline-none"
+              autoComplete="off"
+              aria-busy={loading}
+            />
+          </div>
         </label>
-        <p className="text-xs text-slate-500">
-          Results appear as you type ({DEBOUNCE_MS / 1000}s debounce).
-        </p>
+        {enableVoiceSearch && voiceHint && (
+          <p className="text-xs text-[#BFC0CC]">{voiceHint}</p>
+        )}
+        {showDebounceHint && (
+          <p className="text-xs text-[#BFC0CC]">
+            Results appear as you type with a short delay.
+          </p>
+        )}
       </div>
 
       {loading && (
-        <p className="text-center text-sm text-slate-500">Searching…</p>
+        <p className="text-center text-sm text-[#BFC0CC]">Searching…</p>
       )}
 
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+        <p className="border border-red-500/40 bg-transparent px-4 py-3 text-sm text-red-300">
           {error}
         </p>
       )}
 
       {showEmptyHint && (
-        <p className="text-center text-sm text-slate-500">
+        <p className="text-center text-sm text-[#BFC0CC]">
           No recipes found. Try another keyword.
         </p>
       )}
 
-      <ul className="grid gap-4 sm:grid-cols-2">
+      <ul className="divide-y divide-white/10 border-y border-white/10">
         {recipes.map((r) => (
           <li key={r.id}>
             <Link
               href={`/recipes/${r.id}`}
-              className="group flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-cyan-500/40 hover:bg-white/10"
+              className="group flex items-center gap-4 px-2 py-4 transition hover:bg-white/[0.02]"
             >
               {r.thumbnailUrl ? (
                 <Image
@@ -109,13 +195,16 @@ export function RecipeSearch() {
                   alt={r.title}
                   width={96}
                   height={96}
-                  className="h-24 w-24 shrink-0 rounded-lg object-cover"
+                  className="h-14 w-14 shrink-0 object-cover"
                 />
               ) : (
-                <div className="h-24 w-24 shrink-0 rounded-lg bg-white/10" />
+                <div className="h-14 w-14 shrink-0 border border-white/10" />
               )}
-              <span className="flex items-center text-left font-medium text-white group-hover:text-cyan-200">
-                {r.title}
+              <span className="flex flex-1 items-center justify-between text-left">
+                <span className="font-medium text-[#E8E8EC]">{r.title}</span>
+                <span className="text-xs text-[#BFC0CC] group-hover:text-[#E8E8EC]">
+                  Open →
+                </span>
               </span>
             </Link>
           </li>

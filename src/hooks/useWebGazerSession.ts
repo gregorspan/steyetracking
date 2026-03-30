@@ -155,6 +155,13 @@ export function useWebGazerSession(options: Options = {}) {
     setPhase("calibrating");
   }, []);
 
+  useEffect(() => {
+    const wg = wgRef.current;
+    if (!wg) return;
+    // Keep prediction dot hidden outside tracking, and reactive during tracking.
+    wg.showPredictionPoints(phase === "tracking" && showPredictionPointsWhileTracking);
+  }, [phase, showPredictionPointsWhileTracking]);
+
   return {
     phase,
     error,

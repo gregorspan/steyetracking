@@ -66,10 +66,10 @@ export function EyeTrackingApp() {
         </p>
         <p className="mt-6">
           <Link
-            href="/recipes"
+            href="/"
             className="text-sm font-medium text-cyan-400 underline-offset-4 hover:text-cyan-300 hover:underline"
           >
-            Browse recipes (TheMealDB)
+            Open recipe search
           </Link>
         </p>
       </header>
