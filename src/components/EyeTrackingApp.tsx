@@ -90,19 +90,12 @@ export function EyeTrackingApp() {
     recipeStepIndexRef.current = recipeStepIndex;
   }, [recipeStepIndex]);
 
-  const cleanupWebGazer = useCallback(async () => {
-    const wg = wgRef.current;
-    if (!wg) return;
-    try {
-      wg.clearGazeListener();
-      wg.removeMouseEventListeners();
-      wg.end();
-    } catch {
-      /* ignore */
-    }
-    wgRef.current = null;
-    setGaze(null);
-  }, []);
+  const [demoHint, setDemoHint] = useState(false);
+  const [displayGaze, setDisplayGaze] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const prevPhaseRef = useRef(phase);
 
   useEffect(() => {
     return () => {
@@ -170,6 +163,13 @@ export function EyeTrackingApp() {
     const wg = wgRef.current;
     if (!wg || phase !== "calibrating" || pointIndex !== calibrationIndex)
       return;
+    }
+    const id = window.setInterval(() => {
+      const g = gazeRef.current;
+      setDisplayGaze(g ? { x: g.x, y: g.y } : null);
+    }, 200);
+    return () => clearInterval(id);
+  }, [phase, gazeRef]);
 
     wg.recordScreenPosition(e.clientX, e.clientY, "click");
 
@@ -232,9 +232,9 @@ export function EyeTrackingApp() {
       });
       wg.showPredictionPoints(true);
       setDemoHint(true);
-      window.setTimeout(() => setDemoHint(false), 4000);
-    } else {
-      setCalibrationIndex((i) => i + 1);
+      const t = window.setTimeout(() => setDemoHint(false), 4000);
+      prevPhaseRef.current = phase;
+      return () => clearTimeout(t);
     }
   };
 
@@ -273,8 +273,17 @@ export function EyeTrackingApp() {
         <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
           This prototype explores eye tracking so you can follow recipes with
           messy hands—no scrolling or tapping on the screen. Here you calibrate
-          the webcam tracker and try a live gaze preview. A full recipe UI with
-          gaze-driven controls would build on this foundation.
+          the webcam tracker and try a live gaze preview. Open a recipe in{" "}
+          <strong className="text-slate-300">Cooking mode</strong> to advance
+          steps with your eyes after calibration.
+        </p>
+        <p className="mt-6">
+          <Link
+            href="/recipes"
+            className="text-sm font-medium text-cyan-400 underline-offset-4 hover:text-cyan-300 hover:underline"
+          >
+            Browse recipes (TheMealDB)
+          </Link>
         </p>
       </header>
 
@@ -288,7 +297,7 @@ export function EyeTrackingApp() {
             </p>
             <button
               type="button"
-              onClick={() => void startPipeline()}
+              onClick={() => void start()}
               className="rounded-full bg-cyan-500 px-8 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-400"
             >
               Start calibration
@@ -328,11 +337,10 @@ export function EyeTrackingApp() {
                   use
                 </span>
               )}
-              {phase === "demo" && (
+              {phase === "tracking" && (
                 <>
                   <span className="rounded-full bg-emerald-500/20 px-4 py-1.5 text-xs font-medium text-emerald-300">
-                    Prototype: red dot = estimated gaze (where a hands-free reader
-                    could register “look here” actions)
+                    Live gaze preview — red dot shows estimated gaze
                   </span>
                   <button
                     type="button"
@@ -355,14 +363,14 @@ export function EyeTrackingApp() {
                     onClick={() => void recalibrate()}
                     className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
                   >
-                    Recalibrate for a new session
+                    Recalibrate
                   </button>
                   <button
                     type="button"
-                    onClick={() => void finishDemo()}
+                    onClick={() => void stop()}
                     className="rounded-full border border-white/20 px-4 py-1.5 text-xs text-slate-200 hover:bg-white/10"
                   >
-                    End prototype
+                    End session
                   </button>
                 </>
               )}
@@ -390,17 +398,18 @@ export function EyeTrackingApp() {
               )}
             </div>
 
-            {phase === "demo" && demoHint && (
+            {phase === "tracking" && demoHint && (
               <p className="text-center text-sm text-slate-400">
-                Look around the screen: the red dot shows how the system could
-                follow your eyes to advance steps or scroll a recipe hands-free.
+                Look around the screen: the red dot shows how the system follows
+                your eyes. Use Cooking mode on a recipe to go to the next step by
+                holding your gaze on <strong>Next step</strong>.
               </p>
             )}
 
-            {phase === "demo" && gaze && (
+            {phase === "tracking" && displayGaze && (
               <p className="text-center font-mono text-xs text-slate-500">
-                Gaze position (for future UI): x {Math.round(gaze.x)} px · y{" "}
-                {Math.round(gaze.y)} px
+                Gaze: x {Math.round(displayGaze.x)} px · y{" "}
+                {Math.round(displayGaze.y)} px
               </p>
             )}
 
