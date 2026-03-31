@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Hands-free recipe reader · university prototype",
+  title: "Handsfree Kitchen",
   description:
     "Course project: a hands-free recipe reader powered by webcam eye tracking. Calibrate once, then explore gaze-based interaction for cooking without touching the screen.",
 };
