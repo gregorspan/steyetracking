@@ -3,9 +3,10 @@
 import type { RecipeSummary } from "@/types/recipe";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
-const DEBOUNCE_MS = 400;
+const DEBOUNCE_MS = 250;
 
 type Props = {
   showLabel?: boolean;
@@ -18,12 +19,91 @@ export function RecipeSearch({
   showDebounceHint = true,
   enableVoiceSearch = false,
 }: Props) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const [voiceHint, setVoiceHint] = useState<string | null>(null);
+  const recognitionRef = useRef<{
+    stop: () => void;
+  } | null>(null);
+  const recipesRef = useRef<RecipeSummary[]>([]);
+  const selectedIndexRef = useRef(0);
+  const shouldKeepListeningRef = useRef(false);
+
+  useEffect(() => {
+    setSelectedIndex((i) => {
+      if (recipes.length === 0) return 0;
+      return Math.min(i, recipes.length - 1);
+    });
+  }, [recipes]);
+
+  useEffect(() => {
+    recipesRef.current = recipes;
+  }, [recipes]);
+
+  useEffect(() => {
+    selectedIndexRef.current = selectedIndex;
+  }, [selectedIndex]);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+      recognitionRef.current = null;
+    };
+  }, []);
+
+  const openSelectedRecipe = () => {
+    const list = recipesRef.current;
+    const idx = selectedIndexRef.current;
+    const picked = list[idx];
+    if (!picked) return;
+    // Release microphone on the search page before navigating.
+    shouldKeepListeningRef.current = false;
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setListening(false);
+    try {
+      sessionStorage.setItem("voiceRecipeCarry", "1");
+    } catch {
+      // ignore storage errors
+    }
+    router.push(`/recipes/${picked.id}`);
+  };
+
+  const applyVoiceCommand = (raw: string): boolean => {
+    const t = raw.toLowerCase();
+    const count = recipesRef.current.length;
+    if (t.includes("down") || t.includes("next recipe")) {
+      if (count <= 1) return true;
+      setSelectedIndex((i) => Math.min(count - 1, i + 1));
+      return true;
+    }
+    if (t.includes("up") || t.includes("previous recipe")) {
+      if (count <= 1) return true;
+      setSelectedIndex((i) => Math.max(0, i - 1));
+      return true;
+    }
+    if (t.includes("open") || t === "start") {
+      openSelectedRecipe();
+      return true;
+    }
+    return false;
+  };
+
+  const normalizeVoiceQuery = (raw: string): string => {
+    const words = raw
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (words.length <= 1) return raw.trim();
+    const allSame = words.every((w) => w === words[0]);
+    if (allSame) return words[0];
+    return raw.trim();
+  };
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -74,6 +154,19 @@ export function RecipeSearch({
 
   const startVoiceSearch = () => {
     if (!enableVoiceSearch || typeof window === "undefined") return;
+    if (listening) {
+      shouldKeepListeningRef.current = false;
+      recognitionRef.current?.stop();
+      recognitionRef.current = null;
+      setListening(false);
+      setVoiceHint("Voice control stopped.");
+      try {
+        sessionStorage.removeItem("voiceRecipeCarry");
+      } catch {
+        // ignore storage errors
+      }
+      return;
+    }
     const maybe = window as unknown as {
       SpeechRecognition?: new () => {
         lang: string;
@@ -83,6 +176,7 @@ export function RecipeSearch({
         onerror: ((event: unknown) => void) | null;
         onend: (() => void) | null;
         start: () => void;
+        stop: () => void;
       };
       webkitSpeechRecognition?: new () => {
         lang: string;
@@ -92,6 +186,7 @@ export function RecipeSearch({
         onerror: ((event: unknown) => void) | null;
         onend: (() => void) | null;
         start: () => void;
+        stop: () => void;
       };
     };
     const Ctor = maybe.SpeechRecognition ?? maybe.webkitSpeechRecognition;
@@ -103,24 +198,70 @@ export function RecipeSearch({
     setVoiceHint(null);
     const rec = new Ctor();
     rec.lang = "en-US";
-    rec.interimResults = true;
-    rec.continuous = false;
+    rec.interimResults = false;
+    rec.continuous = true;
     rec.onresult = (event: unknown) => {
       const e = event as {
-        results?: ArrayLike<ArrayLike<{ transcript?: string }>>;
+        resultIndex?: number;
+        results?: ArrayLike<
+          ArrayLike<{ transcript?: string }> & { isFinal?: boolean }
+        >;
       };
-      const chunk = e.results?.[e.results.length - 1]?.[0]?.transcript?.trim();
-      if (chunk) setQuery(chunk);
+      if (!e.results) return;
+      const startIdx = e.resultIndex ?? 0;
+      for (let i = startIdx; i < e.results.length; i++) {
+        const result = e.results[i];
+        if (!result?.isFinal) continue;
+        const chunk = result?.[0]?.transcript?.trim();
+        if (!chunk) continue;
+        if (applyVoiceCommand(chunk)) {
+          setVoiceHint(`Heard command: "${chunk}"`);
+          continue;
+        }
+        const normalized = normalizeVoiceQuery(chunk);
+        setQuery((prev) => (prev.toLowerCase() === normalized.toLowerCase() ? prev : normalized));
+        setVoiceHint(`Searching: "${normalized}"`);
+      }
     };
     rec.onerror = () => {
       setVoiceHint("Mic access failed. Check permission and try again.");
+      recognitionRef.current = null;
+      setListening(false);
+      shouldKeepListeningRef.current = false;
     };
-    rec.onend = () => setListening(false);
+    rec.onend = () => {
+      if (shouldKeepListeningRef.current) {
+        try {
+          rec.start();
+          return;
+        } catch {
+          // fall through to disabled state
+        }
+      }
+      recognitionRef.current = null;
+      setListening(false);
+    };
     try {
       setListening(true);
+      shouldKeepListeningRef.current = true;
+      try {
+        sessionStorage.setItem("voiceRecipeCarry", "1");
+      } catch {
+        // ignore storage errors
+      }
+      setVoiceHint(
+        "Voice control on: say a query, then up/down, open, or start.",
+      );
+      recognitionRef.current = rec;
       rec.start();
     } catch {
+      recognitionRef.current = null;
       setListening(false);
+      try {
+        sessionStorage.removeItem("voiceRecipeCarry");
+      } catch {
+        // ignore storage errors
+      }
       setVoiceHint("Could not start voice input.");
     }
   };
@@ -198,11 +339,16 @@ export function RecipeSearch({
       )}
 
       <ul className="divide-y divide-[var(--border)]">
-        {recipes.map((r) => (
+        {recipes.map((r, i) => (
           <li key={r.id}>
             <Link
               href={`/recipes/${r.id}`}
-              className="group -mx-2 flex items-center gap-4 rounded px-2 py-4 transition-colors duration-150 hover:bg-[var(--hover-bg)]"
+              className={`group -mx-2 flex items-center gap-4 rounded px-2 py-4 transition-colors duration-150 hover:bg-[var(--hover-bg)] ${
+                i === selectedIndex
+                  ? "border-l-2 border-[var(--accent)] bg-[var(--hover-bg)]"
+                  : ""
+              }`}
+              aria-current={i === selectedIndex ? "true" : undefined}
             >
               {r.thumbnailUrl ? (
                 <Image

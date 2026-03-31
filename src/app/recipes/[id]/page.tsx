@@ -1,4 +1,5 @@
 import { SiteNav } from "@/components/SiteNav";
+import { RecipeDetailVoiceControl } from "@/components/recipes/RecipeDetailVoiceControl";
 import { getRecipeById } from "@/lib/recipes/service";
 import Image from "next/image";
 import Link from "next/link";
@@ -62,6 +63,7 @@ export default async function RecipeDetailPage({ params }: Props) {
                 >
                   Start cooking mode
                 </Link>
+                <RecipeDetailVoiceControl recipeId={recipe.id} />
                 <Link
                   href="/"
                   className="rounded px-5 py-2.5 text-sm text-[var(--muted)] transition-colors duration-150 hover:bg-[var(--hover-bg)] hover:text-[var(--fg)]"
